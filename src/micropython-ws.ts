@@ -327,7 +327,8 @@ export function micropythonWs(): MicropythonWs {
 
     // send(`\r\rexec('${code}')\r`);
 
-    send(`\r\x05${code}\r\x04`);
+    // Ctrl-C current program, enter paste mode, type program, leave paste mode
+    send(`\r\x03\r\x05${code}\r\x04`);
   }
 
   function decodeResponse(data: Uint8Array) {
@@ -476,7 +477,7 @@ print(json.dumps(network_names))
 
       jsonHandler = (json) => Array.isArray(json) ? resolve(json) : [];
 
-      send(python);
+      runCode(python);
     });
   }
 
@@ -490,7 +491,7 @@ print(json.dumps(os.listdir()))
 
       jsonHandler = (json) => Array.isArray(json) ? resolve(json) : [];
 
-      send(python);
+      runCode(python);
     });
   }
 
