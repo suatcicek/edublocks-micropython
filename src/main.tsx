@@ -17,8 +17,6 @@ async function main() {
     app.assignTerminal(page.terminalView);
   }
 
-  document.addEventListener('keydown', onkeypress);
-
   function getElementByIdSafe(id: string): HTMLElement {
     const element = document.getElementById(id);
 

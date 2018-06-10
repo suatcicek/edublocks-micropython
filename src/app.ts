@@ -43,8 +43,15 @@ export async function newApp(): Promise<App> {
 function getHost() {
   // Running of localhost means that we're debugging so connect to remote ESP
   if (location.hostname === 'localhost') {
-    return '192.168.0.127:8266';
-    // return '10.30.0.118:8266';
+    const ip = prompt('Enter IP address of ESP32:', localStorage.getItem('esp32-address') || '');
+
+    if (ip === null || ip.trim() === '') {
+      throw new Error('Must enter an IP address of ESP32');
+    }
+
+    localStorage.setItem('esp32-address', ip);
+
+    return `${ip}:8266`;
   }
 
   // Otherwise assume the IP of the websocket is the same as the UI
