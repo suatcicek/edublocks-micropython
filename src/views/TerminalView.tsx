@@ -1,5 +1,6 @@
 import React = require('preact');
 import { Component } from 'preact';
+import { TerminalInterface } from '../types';
 
 interface TerminalViewProps {
   visible: boolean;

@@ -4,8 +4,8 @@
   "description": "A minimal Electron application",
   "main": "main.js",
   "scripts": {
-    "start": "tsc --watch & watchify src/main.js -o web/build/main.js",
-    "build": "tsc && browserify src/main.js -o web/build/main.js",
+    "start": "tsc --watch & watchify -t brfs src/main.js -o web/build/main.js",
+    "build": "tsc && browserify -t brfs src/main.js -o web/build/main.js",
     "serve": "http-server web",
     "lint": "tslint src/**/*.ts"
   },
@@ -22,6 +22,7 @@
     "@types/node": "^7.0.12",
     "@types/pump": "^1.0.1",
     "@types/shelljs": "^0.7.0",
+    "brfs": "^1.6.1",
     "browserify": "^14.3.0",
     "gulp": "^3.9.1",
     "gulp-brotli": "^1.2.0",
