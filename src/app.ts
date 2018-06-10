@@ -2,10 +2,11 @@ import { dummyWs, micropythonWs } from './micropython-ws';
 import { App } from './types';
 
 export async function newApp(): Promise<App> {
-  const ws = micropythonWs();
-  // const ws = dummyWs();
+  const host = getHost();
 
-  ws.connect(`ws://${getHost()}`);
+  const ws = host ? micropythonWs() : dummyWs();
+
+  ws.connect(`ws://${host}`);
 
   return {
     assignTerminal(terminal) {
@@ -46,7 +47,8 @@ function getHost() {
     const ip = prompt('Enter IP address of ESP32:', localStorage.getItem('esp32-address') || '');
 
     if (ip === null || ip.trim() === '') {
-      throw new Error('Must enter an IP address of ESP32');
+      // throw new Error('Must enter an IP address of ESP32');
+      return null;
     }
 
     localStorage.setItem('esp32-address', ip);
