@@ -241,10 +241,12 @@ export default class Page extends Component<PageProps, PageState> {
     this.setState({ fileListModalOpen: false });
   }
 
-  public openFile(file: string) {
+  public async openFile(file: string) {
     this.closeFileListModal();
 
-    this.props.app.getFileAsText(file).then((contents) => this.handleFileContents(file, contents));
+    const contents = await this.props.app.getFileAsText(file);
+
+    this.handleFileContents(file, contents);
   }
 
   private handleFileContents(file: string, contents: string): 0 {

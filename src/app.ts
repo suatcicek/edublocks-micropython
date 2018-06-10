@@ -16,7 +16,7 @@ export async function newApp(): Promise<App> {
     },
 
     runCode(code) {
-      return ws.runCode(code);
+      ws.runCode(code);
     },
 
     listFiles() {

@@ -319,13 +319,15 @@ export function micropythonWs(): MicropythonWs {
     }
   }
 
-  function runCode(code: string) {
-    code = code.replace(/\r\n/g, '\n');
-    code = code.replace(/\r/g, '\n');
-    code = code.replace(/\n/g, '\\n');
-    code = code.replace(/'/g, '\\\'');
+  async function runCode(code: string) {
+    // code = code.replace(/\r\n/g, '\n');
+    // code = code.replace(/\r/g, '\n');
+    // code = code.replace(/\n/g, '\\n');
+    // code = code.replace(/'/g, '\\\'');
 
-    send(`\r\rexec('${code}')\r`);
+    // send(`\r\rexec('${code}')\r`);
+
+    send(`\r\x05${code}\r\x04`);
   }
 
   function decodeResponse(data: Uint8Array) {
