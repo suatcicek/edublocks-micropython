@@ -56,7 +56,7 @@ export default class BlocklyView extends Component<BlocklyViewProps, {}> {
   }
 
   private getPython(): string {
-    return Blockly.Python.workspaceToCode();
+    return Blockly.Python.workspaceToCode(Blockly.mainWorkspace);
   }
 
   private setXml(xml: string | null) {
@@ -64,7 +64,8 @@ export default class BlocklyView extends Component<BlocklyViewProps, {}> {
 
     if (typeof xml === 'string') {
       const textToDom = Blockly.Xml.textToDom(xml);
-      Blockly.Xml.domToWorkspace(Blockly.mainWorkspace, textToDom);
+
+      Blockly.Xml.domToWorkspace(textToDom, Blockly.mainWorkspace);
     }
   }
 
