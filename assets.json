@@ -1,0 +1,23 @@
+[
+    "edu.html",
+    "lib/picnic/picnic.min.css",
+    "css/editor.css",
+    "blockly/blockly_compressed.js",
+    "blockly/python_compressed.js",
+    "blockly/msg/js/en.js",
+    "lib/ace9/ace.js",
+    "lib/ace9/mode-python.js",
+    "lib/ace9/theme-monokai.js",
+    "block_generators.js",
+    "block_definitions.js",
+    "lib/FileSaver.js",
+    "lib/term.js",
+    "build/main.js",
+    "blockly/media/sprites.png",
+    "images/logo.png",
+    "blockly/media/click.mp3",
+    "blockly/media/disconnect.wav",
+    "blockly/media/delete.mp3",
+    "blockly/media/handopen.cur",
+    "blockly/media/handclosed.cur"
+]
