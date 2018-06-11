@@ -8,6 +8,7 @@ import TerminalView from './TerminalView';
 import SelectModal from './SelectModal';
 import Status from './Status';
 import { App, EduBlocksXML, PythonScript, FileType } from '../types';
+import { sleep } from '../lib';
 
 const ViewModeBlockly = 'blockly';
 const ViewModePython = 'python';
@@ -140,7 +141,7 @@ export default class Page extends Component<PageProps, PageState> {
   }
 
   private readBlocklyContents(fileName: string, xml: string) {
-    if (this.state.doc.fileType !== EduBlocksXML) { return; }
+    // if (this.state.doc.fileType !== EduBlocksXML) { return; }
 
     const doc: DocumentState = {
       fileType: EduBlocksXML,
@@ -251,7 +252,11 @@ export default class Page extends Component<PageProps, PageState> {
     }
   }
 
-  private sendCode() {
+  private async sendCode() {
+    if (this.state.doc.fileType === 'py') {
+      await this.save();
+    }
+
     if (!this.terminalView) { throw new Error('No terminal'); }
 
     if (!this.state.doc.python) {
@@ -263,7 +268,13 @@ export default class Page extends Component<PageProps, PageState> {
     this.setState({ terminalOpen: true });
     this.terminalView.focus();
 
-    this.props.app.runCode(this.state.doc.python);
+    if (this.state.doc.fileType === 'xml') {
+      this.props.app.runCode(this.state.doc.python);
+    }
+
+    if (this.state.doc.fileType === 'py') {
+      this.props.app.runLine(`exec(open('${this.state.doc.fileName}','r').read())`);
+    }
 
     setTimeout(() => this.terminalView.focus(), 250);
   }
@@ -313,7 +324,7 @@ export default class Page extends Component<PageProps, PageState> {
     this.updateFromPython(python);
   }
 
-  public save(): 0 {
+  public async save(): Promise<0> {
     if (!this.state.doc.fileName) {
       const fileName = prompt('Enter filename');
 
@@ -330,7 +341,7 @@ export default class Page extends Component<PageProps, PageState> {
 
     switch (this.state.doc.fileType) {
       case EduBlocksXML:
-        this.props.app.sendFileAsText(
+        await this.props.app.sendFileAsText(
           this.state.doc.fileName,
           this.state.doc.xml || '',
         );
@@ -338,7 +349,7 @@ export default class Page extends Component<PageProps, PageState> {
         return 0;
 
       case PythonScript:
-        this.props.app.sendFileAsText(
+        await this.props.app.sendFileAsText(
           this.state.doc.fileName,
           this.state.doc.python || '',
         );
@@ -353,6 +364,14 @@ export default class Page extends Component<PageProps, PageState> {
 
   private onTerminalClose() {
     this.setState({ terminalOpen: false });
+  }
+
+  private getXml(): string {
+    if (this.state.doc.fileType === 'xml') {
+      return this.state.doc.xml || '';
+    }
+
+    return '';
   }
 
   public render() {
@@ -383,14 +402,11 @@ export default class Page extends Component<PageProps, PageState> {
 
           </button>
 
-          {
-            this.state.doc.fileType === EduBlocksXML &&
-            <BlocklyView
-              ref={(c) => this.blocklyView = c}
-              visible={this.state.viewMode === 'blockly'}
-              xml={this.state.doc.xml}
-              onChange={(xml, python) => this.onBlocklyChange(xml, python)} />
-          }
+          <BlocklyView
+            ref={(c) => this.blocklyView = c}
+            visible={this.state.viewMode === 'blockly'}
+            xml={this.getXml()}
+            onChange={(xml, python) => this.onBlocklyChange(xml, python)} />
 
           <PythonView
             ref={(c) => this.pythonView = c}

@@ -1,5 +1,7 @@
 /// <reference path="../node_modules/@types/es6-promise/index.d.ts" />
 
+import { readArrayBuffer, readText } from './lib';
+
 const WebReplPassword = '';
 
 const RT_PutFile = 1;
@@ -30,12 +32,13 @@ interface MicropythonWs {
   connect(url: string): void;
   sendData(data: string): void;
   runCode(code: string): void;
+  runLine(code: string): void;
 
   getVer(): void;
   sendFile(f: File): void;
   getFile(src_fname: string): Promise<Blob>;
 
-  sendFileAsText(file: string, text: string): void;
+  sendFileAsText(file: string, text: string): Promise<void>;
   getFileAsText(src_fname: string): Promise<string>;
 
   scanNetworks(): Promise<string[]>;
@@ -70,11 +73,13 @@ export function dummyWs(): MicropythonWs {
 
     runCode(_code) { },
 
+    runLine(_code) { },
+
     getVer() { },
-    sendFile(_f) { },
+    async sendFile(_f) { },
     async getFile(_src_fname) { return new Blob([]); },
 
-    sendFileAsText(_file, _text) {
+    async sendFileAsText(_file, _text) {
       console.log('sendFileAsText', _file, _text);
     },
 
@@ -104,21 +109,10 @@ export function micropythonWs(): MicropythonWs {
   let getFileData: Uint8Array | null = null;
 
   // Oneshot handlers called in WS receive
+  let putFileHandler: (() => void) | null = null;
   let getFileHandler: ((blob: Blob) => void) | null = null;
+
   let jsonHandler: ((json: object | any[]) => void) | null = null;
-
-  // function setTerminal(t: TerminalInterface) {
-  //   term = t;
-
-  //   term.onData((data) => {
-  //     // Pasted data from clipboard will likely contain
-  //     // LF as EOL chars.
-  //     data = data.replace(/\n/g, '\r');
-  //     ws.send(data);
-  //   });
-
-  //   term.focus();
-  // }
 
   const eventHandlers: Events = {
     open: stub,
@@ -177,8 +171,18 @@ export function micropythonWs(): MicropythonWs {
                 if (!putFileData) { throw new Error('put_file_data is empty'); }
 
                 updateFileStatus(`Sent ${putFileName}, ${putFileData.length} bytes`);
+
+                if (putFileHandler) {
+                  putFileHandler();
+
+                  putFileHandler = null;
+                }
               } else {
                 updateFileStatus(`Failed sending ${putFileName}`);
+
+                // TODO: Call putFileHandler with error code
+
+                putFileHandler = null;
               }
 
               binaryState = BM_None;
@@ -243,6 +247,10 @@ export function micropythonWs(): MicropythonWs {
                 }
               } else {
                 updateFileStatus(`Failed getting ${getFileName}`);
+
+                // TODO: Call getFileHandler with error code
+
+                getFileHandler = null;
               }
 
               binaryState = BM_None;
@@ -338,6 +346,10 @@ export function micropythonWs(): MicropythonWs {
     send(`\r\x03\r\x05${code}\r\x04`);
   }
 
+  async function runLine(code: string) {
+    send(`\r${code}\r`);
+  }
+
   function decodeResponse(data: Uint8Array) {
     if (data[0] === 'W'.charCodeAt(0) && data[1] === 'B'.charCodeAt(0)) {
       const code = data[2] | data[3] << 8;
@@ -388,23 +400,31 @@ export function micropythonWs(): MicropythonWs {
   }
 
   function putFile() {
-    if (!putFileName) { throw new Error('put_file_name is empty'); }
-    if (!putFileData) { throw new Error('put_file_data is empty'); }
+    return new Promise<void>((resolve, reject) => {
+      if (getFileHandler || putFileHandler) {
+        return reject(new Error('A file transfer is already in progress'));
+      }
 
-    const dest_fname = putFileName;
-    const dest_fsize = putFileData.length;
+      putFileHandler = resolve;
 
-    const rec = getRequestRecord(RT_PutFile, dest_fsize, dest_fname);
+      if (!putFileName) { return reject(new Error('put_file_name is empty')); }
+      if (!putFileData) { return reject(new Error('put_file_data is empty')); }
 
-    // initiate put
-    binaryState = BM_FirstResponseForPut;
-    updateFileStatus(`Sending ${putFileName}...`);
-    ws.send(rec);
+      const dest_fname = putFileName;
+      const dest_fsize = putFileData.length;
+
+      const rec = getRequestRecord(RT_PutFile, dest_fsize, dest_fname);
+
+      // initiate put
+      binaryState = BM_FirstResponseForPut;
+      updateFileStatus(`Sending ${putFileName}...`);
+      ws.send(rec);
+    });
   }
 
   function getFile(src_fname: string) {
     return new Promise<Blob>((resolve, reject) => {
-      if (getFileHandler) {
+      if (getFileHandler || putFileHandler) {
         return reject(new Error('A file transfer is already in progress'));
       }
 
@@ -426,14 +446,7 @@ export function micropythonWs(): MicropythonWs {
   async function getFileAsText(src_fname: string) {
     const blob = await getFile(src_fname);
 
-    return new Promise<string>((resolve) => {
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        const contents = (e.target as any).result;
-        resolve(contents);
-      };
-      reader.readAsText(blob);
-    });
+    return readText(blob);
   }
 
   function getVer() {
@@ -444,31 +457,24 @@ export function micropythonWs(): MicropythonWs {
     ws.send(rec);
   }
 
-  function sendFile(f: File) {
+  async function sendFile(f: File) {
     putFileName = f.name;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      putFileData = new Uint8Array((e.target as any).result);
-      console.log(`${encodeURI(f.name)} - ${putFileData.length} bytes`);
+    putFileData = new Uint8Array(await readArrayBuffer(f));
 
-      putFile();
-    };
-    reader.readAsArrayBuffer(f);
+    console.log(`${encodeURI(f.name)} - ${putFileData.length} bytes`);
+
+    await putFile();
   }
 
-  function sendFileAsText(file: string, text: string) {
+  async function sendFileAsText(file: string, text: string) {
     putFileName = file;
 
     const blob = new Blob([text], { type: 'text/plain' });
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      putFileData = new Uint8Array((e.target as any).result);
+    putFileData = new Uint8Array(await readArrayBuffer(blob));
 
-      putFile();
-    };
-    reader.readAsArrayBuffer(blob);
+    await putFile();
   }
 
   function scanNetworks(): Promise<string[]> {
@@ -506,6 +512,7 @@ print(json.dumps(os.listdir()))
     // setTerminal,
     connect,
     runCode,
+    runLine,
     sendData: send,
     getVer,
     sendFile,

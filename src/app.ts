@@ -19,6 +19,10 @@ export async function newApp(): Promise<App> {
       ws.runCode(code);
     },
 
+    runLine(code) {
+      ws.runLine(code);
+    },
+
     async listFiles() {
       const files = await ws.listFiles();
 
@@ -27,12 +31,14 @@ export async function newApp(): Promise<App> {
         .filter((file) => file !== 'boot.py');
     },
 
-    getFileAsText(file) {
-      return ws.getFileAsText(file);
+    async getFileAsText(file) {
+      const text = await ws.getFileAsText(file);
+
+      return text;
     },
 
-    sendFileAsText(file, text) {
-      return ws.sendFileAsText(file, text);
+    async sendFileAsText(file, text) {
+      await ws.sendFileAsText(file, text);
     },
 
     sendFile(f) {

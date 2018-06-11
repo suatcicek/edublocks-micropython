@@ -9,10 +9,12 @@ export interface App {
   assignTerminal(term: TerminalInterface): void;
 
   runCode(code: string): void;
+  runLine(code: string): void;
+
   listFiles(): Promise<string[]>;
 
   getFileAsText(src_fname: string): Promise<string>;
-  sendFileAsText(file: string, text: string): void;
+  sendFileAsText(file: string, text: string): Promise<void>;
 
   sendFile(f: File): void;
 

@@ -66,13 +66,17 @@ export default class BlocklyView extends Component<BlocklyViewProps, {}> {
       const textToDom = Blockly.Xml.textToDom(xml);
 
       Blockly.Xml.domToWorkspace(textToDom, Blockly.mainWorkspace);
+
+      const python = this.getPython();
+
+      this.props.onChange(xml, python);
     }
   }
 
   public render() {
     return (
       <div
-        style={{ display: this.props.visible ? 'block' : 'none' }}
+        style={{ visibility: this.props.visible ? 'visible' : 'hidden' }}
         id="blockly"
         ref={(div) => this.blocklyDiv = div}>
       </div>
