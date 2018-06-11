@@ -74,8 +74,15 @@ export function dummyWs(): MicropythonWs {
     sendFile(_f) { },
     async getFile(_src_fname) { return new Blob([]); },
 
-    sendFileAsText(_file, _text) { },
-    async getFileAsText(_src_fname) { return ''; },
+    sendFileAsText(_file, _text) {
+      console.log('sendFileAsText', _file, _text);
+    },
+
+    async getFileAsText(_src_fname) {
+      console.log('sendFileAsText', _src_fname);
+
+      return '';
+    },
 
     async scanNetworks() { return []; },
     async listFiles() { return ['file1.xml']; },

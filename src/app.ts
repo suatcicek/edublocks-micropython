@@ -19,8 +19,12 @@ export async function newApp(): Promise<App> {
       ws.runCode(code);
     },
 
-    listFiles() {
-      return ws.listFiles();
+    async listFiles() {
+      const files = await ws.listFiles();
+
+      return files
+        .filter((file) => file.slice(-4) === '.xml' || file.slice(-3) === '.py')
+        .filter((file) => file !== 'boot.py');
     },
 
     getFileAsText(file) {

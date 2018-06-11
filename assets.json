@@ -1,5 +1,11 @@
 [
     "edu.html",
+    "fonts/icons/css/fontello.css",
+    "fonts/icons/font/fontello.woff",
+    "fonts/icons/font/fontello.woff2",
+    "fonts/icons/font/fontello.ttf",
+    "fonts/icons/font/fontello.svg",
+    "fonts/icons/font/fontello.eot",
     "lib/picnic/picnic.min.css",
     "css/editor.css",
     "blockly/blockly_compressed.js",
@@ -19,5 +25,6 @@
     "blockly/media/disconnect.wav",
     "blockly/media/delete.mp3",
     "blockly/media/handopen.cur",
-    "blockly/media/handclosed.cur"
+    "blockly/media/handclosed.cur",
+    "blockly/media/handdelete.cur"
 ]
