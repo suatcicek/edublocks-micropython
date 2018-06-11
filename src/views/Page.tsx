@@ -84,16 +84,53 @@ export default class Page extends Component<PageProps, PageState> {
     const fileType = inferredType || EduBlocksXML;
 
     if (this.state.doc.fileName) {
-      if (fileType !== this.state.doc.fileType) {
-        alert('You cannot change the file name extension');
+      // if (fileType !== this.state.doc.fileType) {
+      //   alert('You cannot change the file name extension');
 
-        return;
-      }
+      //   return;
+      // }
     }
 
-    const doc = { ...this.state.doc, fileName };
+    const doc: DocumentState = this.state.doc;
 
-    this.setState({ doc });
+    if (fileType === 'xml' && doc.fileType === 'xml') {
+      const xmlDoc: BlocklyDocumentState = {
+        ...doc,
+        fileType,
+        fileName,
+      };
+
+      this.setState({ doc: xmlDoc });
+    }
+
+    if (fileType === 'py' && doc.fileType === 'py') {
+      const pyDoc: PythonDocumentState = {
+        ...doc,
+        fileType,
+        fileName,
+      };
+
+      this.setState({ doc: pyDoc });
+    }
+
+    // Convert from XML -> PY
+    if (fileType === 'py' && doc.fileType === 'xml') {
+      const pyDoc: PythonDocumentState = {
+        fileType,
+        fileName,
+        python: doc.python,
+        pythonClean: false,
+      };
+
+      this.setState({ doc: pyDoc });
+    }
+
+    // Convert from PY -> XML
+    if (fileType === 'xml' && doc.fileType === 'py') {
+      alert('Cannot convert a Python document to an EduBlocks document');
+
+      return;
+    }
 
     if (fileType === PythonScript) {
       this.switchView(ViewModePython);
