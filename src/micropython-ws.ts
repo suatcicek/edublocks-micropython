@@ -38,7 +38,7 @@ interface MicropythonWs {
   connect(url: string): void;
   sendData(data: string): void;
   runCode(code: string): void;
-  runLine(code: string): void;
+  // runLine(code: string): void;
 
   getVer(): void;
   sendFile(f: File): void;
@@ -79,7 +79,7 @@ export function dummyWs(): MicropythonWs {
 
     runCode(_code) { },
 
-    runLine(_code) { },
+    // runLine(_code) { },
 
     getVer() { },
 
@@ -366,20 +366,13 @@ export function micropythonWs(): MicropythonWs {
   }
 
   async function runCode(code: string) {
-    // code = code.replace(/\r\n/g, '\n');
-    // code = code.replace(/\r/g, '\n');
-    // code = code.replace(/\n/g, '\\n');
-    // code = code.replace(/'/g, '\\\'');
-
-    // send(`\r\rexec('${code}')\r`);
-
     // Ctrl-C current program, enter paste mode, type program, leave paste mode
     send(`\r\x03\r\x05${code}\r\x04`);
   }
 
-  async function runLine(code: string) {
-    send(`\r${code}\r`);
-  }
+  // async function runLine(code: string) {
+  //   send(`\r${code}\r`);
+  // }
 
   function decodeResponse(data: Uint8Array) {
     if (data[0] === 'W'.charCodeAt(0) && data[1] === 'B'.charCodeAt(0)) {
@@ -548,10 +541,9 @@ print(json.dumps(fs.listdir(${cwd})))
   }
 
   return {
-    // setTerminal,
     connect,
     runCode,
-    runLine,
+    // runLine,
     sendData: send,
     getVer,
     sendFile,

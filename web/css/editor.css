@@ -22,8 +22,9 @@ nav {
 /* `SelectModal` Component
 ---------------------------------------------------------------- */
 .SelectModal__buttons {
-  display: flex !important;
-  flex-direction: row-reverse;
+  /* display: flex !important;
+  flex-direction: row-reverse; */
+  overflow: hidden;
 }
 
 .SelectModal__grid {

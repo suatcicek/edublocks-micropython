@@ -1,5 +1,6 @@
 import { dummyWs, micropythonWs } from './micropython-ws';
-import { App } from './types';
+import { App, EduBlocksXML, PythonScript } from './types';
+import { joinDirNameAndFileName } from './lib';
 
 export async function newApp(): Promise<App> {
   const host = getHost();
@@ -15,13 +16,40 @@ export async function newApp(): Promise<App> {
       terminal.onData(ws.sendData);
     },
 
+    async save(doc) {
+      const filePath = joinDirNameAndFileName(doc.dirName, doc.fileName);
+      let pyFilePath;
+
+      if (!filePath) {
+        throw new Error('Invalid file path');
+      }
+
+      if (doc.fileType === EduBlocksXML) {
+        if (!doc.xml) {
+          throw new Error('Nothing to save');
+        }
+
+        await ws.sendFileAsText(filePath, doc.xml);
+
+        pyFilePath = filePath.replace('.xml', '.py');
+      } else {
+        pyFilePath = filePath;
+      }
+
+      if (!doc.python) {
+        throw new Error('No code to run');
+      }
+
+      await ws.sendFileAsText(pyFilePath, doc.python);
+    },
+
     runCode(code) {
       ws.runCode(code);
     },
 
-    runLine(code) {
-      ws.runLine(code);
-    },
+    // runLine(code) {
+    //   ws.runLine(code);
+    // },
 
     async listFiles(cwd: string) {
       const files = await ws.listFiles(cwd);

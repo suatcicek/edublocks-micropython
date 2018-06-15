@@ -1,5 +1,35 @@
 import { MpFile } from './micropython-ws';
 
+export const EduBlocksXML = 'xml';
+export const PythonScript = 'py';
+
+export type FileType = typeof EduBlocksXML | typeof PythonScript;
+
+export interface BlocklyDocumentState {
+  fileType: typeof EduBlocksXML;
+  dirName: string;
+  fileName: string | null;
+  xml: string | null;
+  python: string | null;
+  pythonClean: boolean;
+}
+
+export interface PythonDocumentState {
+  fileType: typeof PythonScript;
+  dirName: string;
+  fileName: string | null;
+  python: string | null;
+  pythonClean: false;
+}
+
+export type DocumentState = BlocklyDocumentState | PythonDocumentState;
+
+export interface FileSelectResult {
+  dirName: string;
+  fileName: string;
+  contents: string;
+}
+
 export interface TerminalInterface {
   onData(handler: (data: string) => void): void;
 
@@ -10,8 +40,10 @@ export interface TerminalInterface {
 export interface App {
   assignTerminal(term: TerminalInterface): void;
 
+  save(doc: DocumentState): Promise<void>;
+
   runCode(code: string): void;
-  runLine(code: string): void;
+  // runLine(code: string): void;
 
   listFiles(cwd: string): Promise<MpFile[]>;
 
@@ -22,8 +54,3 @@ export interface App {
 
   onOpen(handler: () => void): void;
 }
-
-export const EduBlocksXML = 'xml';
-export const PythonScript = 'py';
-
-export type FileType = typeof EduBlocksXML | typeof PythonScript;

@@ -5,10 +5,10 @@ import Nav from './Nav';
 import BlocklyView from './BlocklyView';
 import PythonView from './PythonView';
 import TerminalView from './TerminalView';
-import SelectModal, { SelectModalOption } from './SelectModal';
+import FileModel from './FileModal';
 import Status from './Status';
-import { App, EduBlocksXML, PythonScript, FileType } from '../types';
-import { sleep, joinDirNameAndFileName } from '../lib';
+import { App, EduBlocksXML, PythonScript, FileType, DocumentState, BlocklyDocumentState, PythonDocumentState, FileSelectResult } from '../types';
+import { sleep, joinDirNameAndFileName, getFileType } from '../lib';
 import { MpFile } from '../micropython-ws';
 
 const ViewModeBlockly = 'blockly';
@@ -20,33 +20,12 @@ interface PageProps {
   app: App;
 }
 
-interface BlocklyDocumentState {
-  fileType: typeof EduBlocksXML;
-  dirName: string | null;
-  fileName: string | null;
-  xml: string | null;
-  python: string | null;
-  pythonClean: boolean;
-}
-
-interface PythonDocumentState {
-  fileType: typeof PythonScript;
-  dirName: string | null;
-  fileName: string | null;
-  python: string | null;
-  pythonClean: false;
-}
-
-type DocumentState = BlocklyDocumentState | PythonDocumentState;
-
 interface PageState {
   connected: boolean;
   viewMode: ViewMode;
   terminalOpen: boolean;
 
-  fileListModalOpen: boolean;
-  files: MpFile[];
-  cwd: string;
+  fileModelOpen: boolean;
 
   doc: Readonly<DocumentState>;
 }
@@ -64,13 +43,11 @@ export default class Page extends Component<PageProps, PageState> {
       viewMode: ViewModeBlockly,
       terminalOpen: false,
 
-      fileListModalOpen: false,
-      files: [],
-      cwd: '/',
+      fileModelOpen: false,
 
       doc: {
         fileType: EduBlocksXML,
-        dirName: null,
+        dirName: '/user',
         fileName: null,
         xml: null,
         python: null,
@@ -211,7 +188,7 @@ export default class Page extends Component<PageProps, PageState> {
   private new() {
     const doc: DocumentState = {
       fileType: EduBlocksXML,
-      dirName: null,
+      dirName: '/user',
       fileName: null,
       xml: null,
       python: null,
@@ -223,7 +200,7 @@ export default class Page extends Component<PageProps, PageState> {
     this.switchView('blockly');
   }
 
-  protected componentDidMount() {
+  protected async componentDidMount() {
 
   }
 
@@ -258,52 +235,20 @@ export default class Page extends Component<PageProps, PageState> {
   }
 
   private async onRun() {
-    if (this.state.doc.fileType === 'py') {
-      await this.save();
-    }
-
-    if (!this.terminalView) { throw new Error('No terminal'); }
-
-    if (!this.state.doc.python) {
-      alert('There is no code to run');
-
-      return;
-    }
+    await this.save();
 
     this.setState({ terminalOpen: true });
     this.terminalView.focus();
-
-    if (this.state.doc.fileType === 'xml') {
-      this.props.app.runCode(this.state.doc.python);
-    }
-
-    if (this.state.doc.fileType === 'py') {
-      this.props.app.runLine(`exec(open('${this.state.doc.fileName}','r').read())`);
-    }
 
     setTimeout(() => this.terminalView.focus(), 250);
   }
 
   public async openFileListModal() {
-    const files = await this.props.app.listFiles(this.state.cwd);
-
-    this.setState({ fileListModalOpen: true, files });
+    this.setState({ fileModelOpen: true });
   }
 
   public closeFileListModal() {
-    this.setState({ fileListModalOpen: false });
-  }
-
-  private changeDirectory(dir: string) {
-    const cwd = this.state.cwd;
-
-    const newCwd = joinDirNameAndFileName(cwd, dir);
-
-    if (!newCwd) {
-      throw new Error('Invalid dir path');
-    }
-
-    this.setState({ cwd: newCwd });
+    this.setState({ fileModelOpen: false });
   }
 
   private handleFileContents(dirName: string, fileName: string, contents: string): 0 {
@@ -333,7 +278,7 @@ export default class Page extends Component<PageProps, PageState> {
     this.updateFromPython(python);
   }
 
-  public async save(): Promise<0> {
+  private checkReadyToSave() {
     if (!this.state.doc.fileName) {
       const fileName = prompt('Enter filename');
 
@@ -344,54 +289,22 @@ export default class Page extends Component<PageProps, PageState> {
 
     if (!this.state.doc.fileName) {
       alert('You must specify a filename in order to save');
-
-      return 0;
-    }
-
-    const filePath = this.getDocumentFilePath();
-
-    if (!filePath) {
-      throw new Error('Invalid file path');
-    }
-
-    switch (this.state.doc.fileType) {
-      case EduBlocksXML:
-        await this.props.app.sendFileAsText(
-          filePath,
-          this.state.doc.xml || '',
-        );
-
-        return 0;
-
-      case PythonScript:
-        await this.props.app.sendFileAsText(
-          filePath,
-          this.state.doc.python || '',
-        );
-
-        return 0;
     }
   }
 
-  private async onFileSelected(option: SelectModalOption) {
-    const selectedFile = option.obj as MpFile;
+  public async save() {
+    this.checkReadyToSave();
 
-    if (selectedFile.isdir) {
-      this.changeDirectory(selectedFile.filename);
+    await this.props.app.save(this.state.doc);
+  }
 
-      this.openFileListModal();
-    } else {
-      const filePath = joinDirNameAndFileName(this.state.cwd, selectedFile.filename);
+  private async onFileSelected(result: FileSelectResult | null) {
+    this.closeFileListModal();
 
-      if (!filePath) {
-        throw new Error('Invalid file path');
-      }
+    if (result) {
+      const { dirName, fileName, contents } = result;
 
-      const contents = await this.props.app.getFileAsText(filePath);
-
-      this.handleFileContents(this.state.cwd, selectedFile.filename, contents);
-
-      this.closeFileListModal();
+      this.handleFileContents(dirName, fileName, contents);
     }
   }
 
@@ -409,13 +322,6 @@ export default class Page extends Component<PageProps, PageState> {
     }
 
     return '';
-  }
-
-  private getFiles(): SelectModalOption[] {
-    return this.state.files.map((file) => ({
-      label: `${file.filename} (${file.isdir ? 'Folder' : 'File'})`,
-      obj: file,
-    }));
   }
 
   private getDocumentFilePath() {
@@ -470,25 +376,13 @@ export default class Page extends Component<PageProps, PageState> {
           visible={this.state.terminalOpen}
           onClose={() => this.onTerminalClose()} />
 
-        <SelectModal
-          title="Files"
-          options={this.getFiles()}
-          visible={this.state.fileListModalOpen}
-          onSelect={(file) => this.onFileSelected(file)}
-          onCancel={() => this.closeFileListModal()} />
+        {
+          this.state.fileModelOpen &&
+          <FileModel
+            app={this.props.app}
+            onSelect={(file) => this.onFileSelected(file)} />
+        }
       </div>
     );
   }
-}
-
-function getFileType(file: string): FileType | null {
-  if (file.indexOf('.xml') === file.length - 4) {
-    return EduBlocksXML;
-  }
-
-  if (file.indexOf('.py') === file.length - 3) {
-    return PythonScript;
-  }
-
-  return null;
 }

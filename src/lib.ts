@@ -1,3 +1,5 @@
+import { FileType, EduBlocksXML, PythonScript } from "./types";
+
 export const sleep = (ms: number): Promise<void> => {
   return new Promise<void>((resolve) => {
     setTimeout(resolve, ms);
@@ -28,10 +30,22 @@ export const readText = (blob: Blob) => {
   });
 };
 
-export const joinDirNameAndFileName = (dirName: string | null, fileName: string | null) => {
-  if (dirName === null || fileName === null) {
+export const joinDirNameAndFileName = (dirName: string, fileName: string | null) => {
+  if (fileName === null) {
     return null;
   }
 
   return `${dirName}/${fileName}`.replace(/\/\//g, '/');
 };
+
+export function getFileType(file: string): FileType | null {
+  if (file.indexOf('.xml') === file.length - 4) {
+    return EduBlocksXML;
+  }
+
+  if (file.indexOf('.py') === file.length - 3) {
+    return PythonScript;
+  }
+
+  return null;
+}
