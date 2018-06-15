@@ -8,13 +8,38 @@ body {
   text-align: center;
 }
 
-#page {
+/* `Page` Component
+---------------------------------------------------------------- */
+.Page {
   height: 100%;
   width: 100%;
 }
 
 nav {
   /* box-shadow: rgba(0,0,0,0.25) 0px 0px 8px; */
+}
+
+/* `SelectModal` Component
+---------------------------------------------------------------- */
+.SelectModal__buttons {
+  display: flex !important;
+  flex-direction: row-reverse;
+}
+
+.SelectModal__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(100px, 1fr));
+  align-items: center;
+}
+
+.SelectModal__cell {
+  
+}
+.SelectModal__cell--text > span {
+  line-height: 40px;
+}
+.SelectModal__cell--action > button {
+  float: right;
 }
 
 /* `Status` Component

@@ -27,3 +27,11 @@ export const readText = (blob: Blob) => {
     reader.readAsText(blob);
   });
 };
+
+export const joinDirNameAndFileName = (dirName: string | null, fileName: string | null) => {
+  if (dirName === null || fileName === null) {
+    return null;
+  }
+
+  return `${dirName}/${fileName}`.replace(/\/\//g, '/');
+};

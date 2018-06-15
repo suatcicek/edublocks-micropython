@@ -4,27 +4,34 @@ import { Component } from 'preact';
 interface SelectModalProps {
   title: string;
   visible: boolean;
-  options: string[];
+  options: SelectModalOption[];
 
   onCancel(): void;
-  onSelect(option: string): void;
+  onSelect(option: SelectModalOption): void;
 }
 
 interface SelectModalState {
 
 }
 
+export interface SelectModalOption {
+  label: string;
+  obj: any;
+}
+
 export default class SelectModal extends Component<SelectModalProps, SelectModalState> {
   public render() {
-    const getOptions = () => this.props.options.map((option) => (
-      <tr>
-        <td>{option}</td>
-        <td><button onClick={() => this.props.onSelect(option)}>Select</button></td>
-      </tr>
-    ));
+    const getOptions = () => this.props.options.map((option) => ([
+      <div class="SelectModal__cell SelectModal__cell--text">
+        <span>{option.label}</span>
+      </div>,
+      <div class="SelectModal__cell SelectModal__cell--action">
+        <button onClick={() => this.props.onSelect(option)}>Select</button>
+      </div>,
+    ]));
 
     return (
-      <div class="modal">
+      <div class="SelectModal modal">
         <input id="modal_1" type="checkbox" disabled={true} checked={this.props.visible} />
         <label for="modal_1" class="overlay"></label>
         <article>
@@ -33,13 +40,11 @@ export default class SelectModal extends Component<SelectModalProps, SelectModal
             <a class="close" onClick={this.props.onCancel}>&times;</a>
           </header>
           <section class="content">
-            <table class="primary">
-              <tbody>
-                {getOptions()}
-              </tbody>
-            </table>
+            <div class="SelectModal__grid">
+              {getOptions()}
+            </div>
           </section>
-          <footer>
+          <footer class="SelectModal__buttons">
             <button onClick={this.props.onCancel}>Close</button>
           </footer>
         </article>

@@ -23,12 +23,12 @@ export async function newApp(): Promise<App> {
       ws.runLine(code);
     },
 
-    async listFiles() {
-      const files = await ws.listFiles();
+    async listFiles(cwd: string) {
+      const files = await ws.listFiles(cwd);
 
       return files
-        .filter((file) => file.slice(-4) === '.xml' || file.slice(-3) === '.py')
-        .filter((file) => file !== 'boot.py');
+        .filter(({ filename, isdir }) => isdir || filename.slice(-4) === '.xml' || filename.slice(-3) === '.py')
+        .filter(({ filename }) => filename !== 'boot.py');
     },
 
     async getFileAsText(file) {

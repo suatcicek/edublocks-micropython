@@ -1,3 +1,5 @@
+import { MpFile } from './micropython-ws';
+
 export interface TerminalInterface {
   onData(handler: (data: string) => void): void;
 
@@ -11,7 +13,7 @@ export interface App {
   runCode(code: string): void;
   runLine(code: string): void;
 
-  listFiles(): Promise<string[]>;
+  listFiles(cwd: string): Promise<MpFile[]>;
 
   getFileAsText(src_fname: string): Promise<string>;
   sendFileAsText(file: string, text: string): Promise<void>;

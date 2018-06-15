@@ -3,10 +3,10 @@ import { Component } from 'preact';
 
 interface NavProps {
   onDownloadPython(): void;
-  onNewCode(): void;
-  onOpenCode(): void;
-  onSaveCode(): void;
-  onSendCode(): void;
+  onNew(): void;
+  onOpen(): void;
+  onSave(): void;
+  onRun(): void;
   onSelectFile(file: File): void;
 }
 
@@ -32,19 +32,19 @@ export default function Nav(props: NavProps) {
           Python Download
         </a> */}
 
-        <a class="button icon-plus" title="New" href="javascript:void(0)" onClick={() => props.onNewCode()}>
+        <a class="button icon-plus" title="New" href="javascript:void(0)" onClick={() => props.onNew()}>
           New
         </a>
 
-        <a class="button icon-folder-open" title="Open a file" href="javascript:void(0)" onClick={() => props.onOpenCode()}>
+        <a class="button icon-folder-open" title="Open a file" href="javascript:void(0)" onClick={() => props.onOpen()}>
           Open
         </a>
 
-        <a class="button icon-floppy" title="Save a file" href="javascript:void(0)" onClick={() => props.onSaveCode()}>
+        <a class="button icon-floppy" title="Save a file" href="javascript:void(0)" onClick={() => props.onSave()}>
           Save
         </a>
 
-        <a class="button icon-play" title="Run your code" href="javascript:void(0)" onClick={() => props.onSendCode()}>
+        <a class="button icon-play" title="Run your code" href="javascript:void(0)" onClick={() => props.onRun()}>
           Run
         </a>
       </div>

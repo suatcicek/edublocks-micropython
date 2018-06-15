@@ -1,5 +1,8 @@
 /// <reference path="../node_modules/@types/es6-promise/index.d.ts" />
 
+import fs = require('fs');
+import path = require('path');
+
 import { readArrayBuffer, readText } from './lib';
 
 const WebReplPassword = '';
@@ -26,9 +29,12 @@ interface Events {
   line: (line: string) => void;
 }
 
-interface MicropythonWs {
-  // setTerminal(term: TerminalInterface): void;
+export interface MpFile {
+  filename: string;
+  isdir: boolean;
+}
 
+interface MicropythonWs {
   connect(url: string): void;
   sendData(data: string): void;
   runCode(code: string): void;
@@ -42,7 +48,7 @@ interface MicropythonWs {
   getFileAsText(src_fname: string): Promise<string>;
 
   scanNetworks(): Promise<string[]>;
-  listFiles(): Promise<string[]>;
+  listFiles(cwd: string): Promise<MpFile[]>;
 
   on<K extends keyof Events>(eventType: K, handler: Events[K]): void;
 }
@@ -76,6 +82,7 @@ export function dummyWs(): MicropythonWs {
     runLine(_code) { },
 
     getVer() { },
+
     async sendFile(_f) { },
     async getFile(_src_fname) { return new Blob([]); },
 
@@ -83,21 +90,53 @@ export function dummyWs(): MicropythonWs {
       console.log('sendFileAsText', _file, _text);
     },
 
-    async getFileAsText(_src_fname) {
-      console.log('sendFileAsText', _src_fname);
+    async getFileAsText(filePath) {
+      console.log('getFileAsText', filePath);
+
+      if (filePath.length === 0 || filePath[0] !== '/') {
+        throw new Error('Path must be absolute');
+      }
+
+      if (filePath === '/user/nfile1.xml') {
+        return fs.readFileSync(path.join(__dirname, 'resources', 'doubler.xml'), 'utf-8');
+      }
 
       return '';
     },
 
     async scanNetworks() { return []; },
-    async listFiles() { return ['file1.xml']; },
+
+    async listFiles(cwd) {
+      console.log('listFiles', cwd);
+
+      if (cwd.length === 0 || cwd[0] !== '/') {
+        throw new Error('Path must be absolute');
+      }
+
+      if (cwd === '/') {
+        return [
+          { filename: 'user', isdir: true },
+          { filename: 'file1.xml', isdir: false },
+        ];
+      }
+
+      if (cwd === '/user') {
+        return [
+          { filename: 'nfile1.xml', isdir: false },
+          { filename: 'nfile2.xml', isdir: false },
+          { filename: 'nfile3.xml', isdir: false },
+          { filename: 'nfile4.xml', isdir: false },
+        ];
+      }
+
+      throw new Error('Invalid folder');
+    },
 
     on,
   };
 }
 
 export function micropythonWs(): MicropythonWs {
-  // let term: TerminalInterface | null = null;
   let ws: WebSocket;
   let connected = false;
 
@@ -120,7 +159,7 @@ export function micropythonWs(): MicropythonWs {
     line: stub,
   };
 
-  function prepareForConnect() {
+  function reconnect() {
     console.log('prepare_for_connect');
   }
 
@@ -308,11 +347,7 @@ export function micropythonWs(): MicropythonWs {
     ws.onclose = () => {
       connected = false;
 
-      // if (term) {
-      //   term.write('\x1b[31mDisconnected\x1b[m\r\n');
-      // }
-
-      prepareForConnect();
+      reconnect();
     };
   }
 
@@ -321,10 +356,6 @@ export function micropythonWs(): MicropythonWs {
 
     try {
       ws.send(data);
-
-      // if (term) {
-      //   term.focus();
-      // }
     } catch (e) {
       if (e instanceof DOMException) {
         alert('I could not connect to the ESP8266. :-(');
@@ -422,7 +453,11 @@ export function micropythonWs(): MicropythonWs {
     });
   }
 
-  function getFile(src_fname: string) {
+  function getFile(filePath: string) {
+    if (filePath.length === 0 || filePath[0] !== '/') {
+      throw new Error('Path must be absolute');
+    }
+
     return new Promise<Blob>((resolve, reject) => {
       if (getFileHandler || putFileHandler) {
         return reject(new Error('A file transfer is already in progress'));
@@ -431,11 +466,11 @@ export function micropythonWs(): MicropythonWs {
       getFileHandler = resolve;
 
       // WEBREPL_FILE = "<2sBBQLH64s"
-      const rec = getRequestRecord(RT_GetFile, undefined, src_fname);
+      const rec = getRequestRecord(RT_GetFile, undefined, filePath);
 
       // initiate get
       binaryState = BM_FirstResponseForGet;
-      getFileName = src_fname;
+      getFileName = filePath;
       getFileData = new Uint8Array(0);
       updateFileStatus(`Getting ${getFileName}...`);
 
@@ -443,8 +478,8 @@ export function micropythonWs(): MicropythonWs {
     });
   }
 
-  async function getFileAsText(src_fname: string) {
-    const blob = await getFile(src_fname);
+  async function getFileAsText(filePath: string) {
+    const blob = await getFile(filePath);
 
     return readText(blob);
   }
@@ -494,12 +529,16 @@ print(json.dumps(network_names))
     });
   }
 
-  function listFiles(): Promise<string[]> {
-    return new Promise<string[]>((resolve) => {
+  function listFiles(cwd: string): Promise<MpFile[]> {
+    if (cwd.length === 0 || cwd[0] !== '/') {
+      throw new Error('Path must be absolute');
+    }
+
+    return new Promise<MpFile[]>((resolve) => {
       const python = `
 import json
-import os
-print(json.dumps(os.listdir()))
+from lib import fs
+print(json.dumps(fs.listdir(${cwd})))
 `;
 
       jsonHandler = (json) => Array.isArray(json) ? resolve(json) : [];
