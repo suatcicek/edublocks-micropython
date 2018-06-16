@@ -17,24 +17,7 @@ export default class TerminalView extends Component<TerminalViewProps, {}> imple
   protected componentDidMount() {
     if (!this.termDiv) { throw new Error('No term'); }
 
-    const calculateSize = (): [number, number] => {
-      if (!this.termDiv) { throw new Error('No term'); }
-
-      const cols = Math.max(80, Math.min(300, this.termDiv.clientWidth / 6.7)) | 0;
-      const rows = Math.max(10, Math.min(80, this.termDiv.clientHeight / 20.5)) | 0;
-
-      return [cols, rows];
-    };
-
-    const resizeTerminal = () => {
-      if (!this.termDiv) { throw new Error('No term'); }
-
-      const [x, y] = calculateSize();
-
-      this.term.resize(x, y);
-    };
-
-    const [x, y] = calculateSize();
+    const [x, y] = this.calculateSize();
 
     this.term = new Terminal({
       cols: x,
@@ -57,9 +40,30 @@ export default class TerminalView extends Component<TerminalViewProps, {}> imple
     this.term.write('\x1b[31mWelcome to EduBlocks!\x1b[m\r\n');
     this.term.write('Press [ESC] to exit the terminal\r\n');
 
-    window.addEventListener('resize', resizeTerminal);
+    window.addEventListener('resize', () => this.resizeTerminal);
+  }
 
-    setInterval(resizeTerminal, 2000);
+  private calculateSize(): [number, number] {
+    if (!this.termDiv) { throw new Error('No term'); }
+
+    const cols = Math.max(80, Math.min(300, this.termDiv.clientWidth / 6.7)) | 0;
+    const rows = Math.max(10, Math.min(80, this.termDiv.clientHeight / 20.5)) | 0;
+
+    return [cols, rows];
+  }
+
+  private resizeTerminal() {
+    if (!this.termDiv) { throw new Error('No term'); }
+
+    const [x, y] = this.calculateSize();
+
+    this.term.resize(x, y);
+  }
+
+  protected componentDidUpdate(prevProps: TerminalViewProps) {
+    if (!prevProps.visible && this.props.visible) {
+      this.resizeTerminal();
+    }
   }
 
   public focus() {
@@ -79,8 +83,8 @@ export default class TerminalView extends Component<TerminalViewProps, {}> imple
 
   public render() {
     return (
-      <div style={{ display: this.props.visible ? 'block' : 'none' }} id="terminal-dialog">
-        <div id="term" ref={(div) => this.termDiv = div}></div>
+      <div style={{ display: this.props.visible ? 'block' : 'none' }} class="TerminalView">
+        <div class="TerminalView__term" ref={(div) => this.termDiv = div}></div>
       </div>
     );
   }

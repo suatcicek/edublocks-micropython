@@ -154,7 +154,9 @@ button {
   left: 0;
 }
 
-#terminal-dialog {
+/* `TerminalView` Component
+---------------------------------------------------------------- */
+.TerminalView {
   position: fixed;
   z-index: 10001;
   left: 20px;
@@ -165,7 +167,7 @@ button {
   line-height: 20px;
 }
 
-#term {
+.TerminalView__term {
   height: 100%;
-  background: #333;
+  background: #000;
 }
