@@ -3,6 +3,7 @@ import { Component } from 'preact';
 
 interface SelectModalProps {
   title: string;
+  selectLabel: string;
 
   buttons: SelectModalButton[];
   options: SelectModalOption[];
@@ -40,7 +41,7 @@ export default class SelectModal extends Component<SelectModalProps, SelectModal
         <span>{option.label}</span>
       </div>,
       <div class="SelectModal__cell SelectModal__cell--action">
-        <button onClick={() => this.props.onSelect(option)}>Select</button>
+        <button onClick={() => this.props.onSelect(option)}>{this.props.selectLabel}</button>
       </div>,
     ]));
 
@@ -67,7 +68,7 @@ export default class SelectModal extends Component<SelectModalProps, SelectModal
           <footer class="SelectModal__buttons">
             {
               this.getButtons().map((button) => (
-                <button style={{ float: button.position }} onClick={() => this.props.onButtonClick(button.key)}>{button.label}</button>
+                <button style={{ float: button.position, [`margin-${button.position === 'left' ? 'right' : 'left'}`]: '8px' }} onClick={() => this.props.onButtonClick(button.key)}>{button.label}</button>
               ))
             }
           </footer>

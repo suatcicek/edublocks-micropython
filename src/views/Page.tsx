@@ -9,7 +9,7 @@ import FileModel from './FileModal';
 import Status from './Status';
 import { App, EduBlocksXML, PythonScript, FileType, DocumentState, BlocklyDocumentState, PythonDocumentState, FileSelectResult } from '../types';
 import { sleep, joinDirNameAndFileName, getFileType } from '../lib';
-import { MpFile } from '../micropython-ws';
+import { MpFile, SocketStatus } from '../micropython-ws';
 
 const ViewModeBlockly = 'blockly';
 const ViewModePython = 'python';
@@ -21,7 +21,7 @@ interface PageProps {
 }
 
 interface PageState {
-  connected: boolean;
+  connectionStatus: SocketStatus;
   viewMode: ViewMode;
   terminalOpen: boolean;
 
@@ -39,7 +39,7 @@ export default class Page extends Component<PageProps, PageState> {
     super(props);
 
     this.state = {
-      connected: false,
+      connectionStatus: 'disconnected',
       viewMode: ViewModeBlockly,
       terminalOpen: false,
 
@@ -55,8 +55,8 @@ export default class Page extends Component<PageProps, PageState> {
       },
     };
 
-    this.props.app.onOpen(() => {
-      this.setState({ connected: true });
+    this.props.app.onSocketStatusChange((connectionStatus) => {
+      this.setState({ connectionStatus });
     });
   }
 
@@ -235,16 +235,16 @@ export default class Page extends Component<PageProps, PageState> {
   }
 
   private async onRun() {
-    await this.save();
+    if (await this.save()) {
+      // const filePath = this.getDocumentFilePath();
 
-    // const filePath = this.getDocumentFilePath();
+      this.props.app.runCode(this.state.doc.python || '');
 
-    this.props.app.runCode(this.state.doc.python || '');
+      this.setState({ terminalOpen: true });
+      this.terminalView.focus();
 
-    this.setState({ terminalOpen: true });
-    this.terminalView.focus();
-
-    setTimeout(() => this.terminalView.focus(), 250);
+      setTimeout(() => this.terminalView.focus(), 250);
+    }
   }
 
   public async openFileListModal() {
@@ -256,6 +256,10 @@ export default class Page extends Component<PageProps, PageState> {
   }
 
   private handleFileContents(dirName: string, fileName: string, contents: string): 0 {
+    if (dirName === '/samples') {
+      dirName = '/user';
+    }
+
     switch (getFileType(fileName)) {
       case EduBlocksXML:
         this.readBlocklyContents(dirName, fileName, contents);
@@ -303,7 +307,11 @@ export default class Page extends Component<PageProps, PageState> {
   public async save() {
     if (this.checkReadyToSave()) {
       await this.props.app.save(this.state.doc);
+
+      return true;
     }
+
+    return false;
   }
 
   private async onFileSelected(result: FileSelectResult | null) {
@@ -350,7 +358,7 @@ export default class Page extends Component<PageProps, PageState> {
           onSelectFile={(file) => this.onSelectFile(file)} />
 
         <Status
-          connected={this.state.connected}
+          connectionStatus={this.state.connectionStatus}
           fileName={this.getDocumentFilePath()}
           fileType={this.state.doc.fileType}
           sync={this.state.doc.pythonClean}

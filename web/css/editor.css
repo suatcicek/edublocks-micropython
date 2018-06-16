@@ -1,3 +1,5 @@
+/* `General` Component
+---------------------------------------------------------------- */
 body {
   height: auto;
 }
@@ -15,7 +17,9 @@ body {
   width: 100%;
 }
 
-nav {
+/* `Nav` Component
+---------------------------------------------------------------- */
+.Nav {
   /* box-shadow: rgba(0,0,0,0.25) 0px 0px 8px; */
 }
 
@@ -72,6 +76,7 @@ nav {
   margin-right: 20px;
   flex: 1;
   text-align: right;
+  text-transform: capitalize;
 }
 .Status__connection--connected {
   color: green;
@@ -85,6 +90,25 @@ nav {
   /* font-size: 10px; */
   margin-left: 20px;
 }
+
+/* `TerminalView` Component
+---------------------------------------------------------------- */
+.TerminalView {
+  position: fixed;
+  z-index: 10001;
+  left: 20px;
+  top: 20px;
+  right: 20px;
+  bottom: 20px;
+  border: solid 1px #000;
+  line-height: 20px;
+}
+
+.TerminalView__term {
+  height: 100%;
+  background: #000;
+}
+
 
 button {
   margin: 0;
@@ -152,22 +176,4 @@ button {
   right: 0;
   bottom: 0;
   left: 0;
-}
-
-/* `TerminalView` Component
----------------------------------------------------------------- */
-.TerminalView {
-  position: fixed;
-  z-index: 10001;
-  left: 20px;
-  top: 20px;
-  right: 20px;
-  bottom: 20px;
-  border: solid 1px #000;
-  line-height: 20px;
-}
-
-.TerminalView__term {
-  height: 100%;
-  background: #000;
 }

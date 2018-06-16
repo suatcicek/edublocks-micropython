@@ -32,33 +32,39 @@ export default class FileModal extends Component<FileModalProps, FileModalState>
     this.setState({ files });
   }
 
-  private async changeDirectory(dir: string) {
+  private async changeDirectoryRelative(dir: string) {
+    const { cwd } = this.state;
+
     let newCwd;
 
     if (dir === '..') {
-      newCwd = this.state.cwd.split('/').slice(0, -1).join('/');
+      newCwd = cwd.split('/').slice(0, -1).join('/');
 
       if (newCwd === '') {
         newCwd = '/';
       }
     } else {
-      newCwd = joinDirNameAndFileName(this.state.cwd, dir);
+      newCwd = joinDirNameAndFileName(cwd, dir);
     }
 
     if (!newCwd) {
       throw new Error('Invalid dir path');
     }
 
-    const files = await this.props.app.listFiles(newCwd);
+    await this.changeDirectory(newCwd);
+  }
 
-    this.setState({ files, cwd: newCwd });
+  private async changeDirectory(cwd: string) {
+    const files = await this.props.app.listFiles(cwd);
+
+    this.setState({ files, cwd });
   }
 
   private async onFileSelected(file: SelectModalOption) {
     const selectedFile = file.obj as MpFile;
 
     if (selectedFile.isdir) {
-      await this.changeDirectory(selectedFile.filename);
+      await this.changeDirectoryRelative(selectedFile.filename);
     } else {
       const filePath = joinDirNameAndFileName(this.state.cwd, selectedFile.filename);
 
@@ -78,7 +84,11 @@ export default class FileModal extends Component<FileModalProps, FileModalState>
 
   private async onModalButtonClick(key: string) {
     if (key === 'up') {
-      await this.changeDirectory('..');
+      await this.changeDirectoryRelative('..');
+    }
+
+    if (key === 'samples') {
+      await this.changeDirectory('/samples');
     }
 
     if (key === 'close') {
@@ -92,13 +102,15 @@ export default class FileModal extends Component<FileModalProps, FileModalState>
       obj: file,
     }));
 
-    const buttons: SelectModalButton[] = this.state.cwd !== '/' ? [
-      { key: 'up', label: 'Go up', position: 'left' },
-    ] : [];
+    const buttons: SelectModalButton[] = [
+      ...(this.state.cwd !== '/' ? [{ key: 'up', label: 'Go up', position: 'left' as 'left' }] : []),
+      { key: 'samples', label: 'Samples', position: 'left' },
+    ];
 
     return (
       <SelectModal
         title={`Browsing ${this.state.cwd}`}
+        selectLabel="Open"
         buttons={buttons}
         options={options}
         onSelect={(file) => this.onFileSelected(file)}

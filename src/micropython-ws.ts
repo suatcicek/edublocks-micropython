@@ -23,8 +23,10 @@ const BM_ResponseForGetVer = 31;
 
 type BinaryModes = typeof BM_None | typeof BM_FirstResponseForPut | typeof BM_FinalResponseForPut | typeof BM_FirstResponseForGet | typeof BM_FileData | typeof BM_FinalResponseForGet | typeof BM_ResponseForGetVer;
 
+export type SocketStatus = 'connecting' | 'connected' | 'reconnecting' | 'reconnected' | 'disconnected';
+
 interface Events {
-  open: () => void;
+  statusChange: (status: SocketStatus) => void;
   data: (data: string) => void;
   line: (line: string) => void;
 }
@@ -35,7 +37,7 @@ export interface MpFile {
 }
 
 interface MicropythonWs {
-  connect(url: string): void;
+  connect(url: string): Promise<void>;
   sendData(data: string): void;
   runCode(code: string): void;
   // runLine(code: string): void;
@@ -57,7 +59,7 @@ const stub = () => void 0;
 
 export function dummyWs(): MicropythonWs {
   const eventHandlers: Events = {
-    open: stub,
+    statusChange: stub,
     data: stub,
     line: stub,
   };
@@ -67,12 +69,10 @@ export function dummyWs(): MicropythonWs {
   }
 
   return {
-    // setTerminal() { },
-
     async connect(_url) {
       await sleep(1000);
 
-      eventHandlers.open();
+      eventHandlers.statusChange('connected');
     },
 
     sendData(data: string) { },
@@ -137,8 +137,9 @@ export function dummyWs(): MicropythonWs {
 }
 
 export function micropythonWs(): MicropythonWs {
-  let ws: WebSocket;
-  let connected = false;
+  let ws: WebSocket | null = null;
+  let connectionWatch: NodeJS.Timer | null = null;
+  let receiveBuffer = '';
 
   let binaryState: BinaryModes = BM_None;
 
@@ -154,204 +155,282 @@ export function micropythonWs(): MicropythonWs {
   let jsonHandler: ((json: object | any[]) => void) | null = null;
 
   const eventHandlers: Events = {
-    open: stub,
+    statusChange: stub,
     data: stub,
     line: stub,
   };
 
-  function reconnect() {
-    console.log('prepare_for_connect');
+  function on<K extends keyof Events>(eventType: K, handler: Events[K]) {
+    eventHandlers[eventType] = handler;
+  }
+
+  let url: string | null = null;
+  let connectResolver: (() => void) | null = null;
+  let status: SocketStatus = 'disconnected';
+
+  function statusChange(s: SocketStatus) {
+    status = s;
+
+    eventHandlers.statusChange(s);
+  }
+
+  function connect(u: string): Promise<void> {
+    return new Promise<void>((resolve) => {
+      url = u;
+      connectResolver = resolve;
+
+      _connect(false);
+    });
+  }
+
+  function _connect(reconnect: boolean) {
+    if (!url) {
+      throw new Error('Invalid URL');
+    }
+
+    if (reconnect) {
+      statusChange('reconnecting');
+    } else {
+      statusChange('connecting');
+    }
+
+    receiveBuffer = '';
+    getFileHandler = null;
+    putFileHandler = null;
+
+    ws = new WebSocket(url);
+
+    ws.binaryType = 'arraybuffer';
+
+    ws.onmessage = onMessage;
+    ws.onopen = onOpen;
+    ws.onclose = onClose;
+    ws.onerror = onError;
+
+    connectionWatch = setTimeout(() => {
+      if (ws && ws.readyState === WebSocket.CONNECTING) {
+        ws.close();
+        ws = null;
+
+        // statusChange('disconnected');
+        // attemptReconnect();
+
+        connectionWatch = null;
+      }
+    }, 5000);
+  }
+
+  function attemptReconnect() {
+    setTimeout(() => _connect(true), 1000);
+  }
+
+  function onOpen() {
+    if (!ws) {
+      throw new Error('Websocket not available');
+    }
+
+    // if (connectionWatch) {
+    //   clearTimeout(connectionWatch);
+
+    //   connectionWatch = null;
+    // }
+
+    // The default login password for the terminal
+    ws.send(`${WebReplPassword}\r`);
+
+    if (connectResolver) {
+      connectResolver();
+
+      connectResolver = null;
+
+      statusChange('connected');
+    } else {
+      statusChange('reconnected');
+    }
+  }
+
+  function onClose() {
+    statusChange('disconnected');
+
+    // if (connectionWatch) {
+    //   clearTimeout(connectionWatch);
+
+    //   connectionWatch = null;
+    // }
+
+    attemptReconnect();
+  }
+
+  function onError(evt: Event) {
+    console.error('socket', evt);
   }
 
   function updateFileStatus(s: string) {
     console.log(s);
   }
 
-  function on<K extends keyof Events>(eventType: K, handler: Events[K]) {
-    eventHandlers[eventType] = handler;
-  }
+  function onMessage(event: MessageEvent) {
+    if (!ws) {
+      throw new Error('Websocket not available');
+    }
 
-  function connect(url: string) {
-    ws = new WebSocket(url);
+    if (event.data instanceof ArrayBuffer) {
+      const data = new Uint8Array(event.data);
 
-    ws.binaryType = 'arraybuffer';
+      switch (binaryState) {
+        case BM_FirstResponseForPut:
+          // first response for put
+          if (decodeResponse(data) === 0) {
+            if (!putFileData) { throw new Error('put_file_data is empty'); }
 
-    ws.onopen = () => {
-      let receiveBuffer = '';
-
-      // The default login password for the terminal
-      ws.send(`${WebReplPassword}\r`);
-
-      eventHandlers.open();
-
-      ws.onmessage = (event) => {
-        if (event.data instanceof ArrayBuffer) {
-          const data = new Uint8Array(event.data);
-
-          switch (binaryState) {
-            case BM_FirstResponseForPut:
-              // first response for put
-              if (decodeResponse(data) === 0) {
-                if (!putFileData) { throw new Error('put_file_data is empty'); }
-
-                // send file data in chunks
-                for (let offset = 0; offset < putFileData.length; offset += 1024) {
-                  ws.send(putFileData.slice(offset, offset + 1024));
-                }
-
-                binaryState = BM_FinalResponseForPut;
-              }
-
-              break;
-
-            case BM_FinalResponseForPut:
-              // final response for put
-              if (decodeResponse(data) === 0) {
-                if (!putFileData) { throw new Error('put_file_data is empty'); }
-
-                updateFileStatus(`Sent ${putFileName}, ${putFileData.length} bytes`);
-
-                if (putFileHandler) {
-                  putFileHandler();
-
-                  putFileHandler = null;
-                }
-              } else {
-                updateFileStatus(`Failed sending ${putFileName}`);
-
-                // TODO: Call putFileHandler with error code
-
-                putFileHandler = null;
-              }
-
-              binaryState = BM_None;
-
-              break;
-
-            case BM_FirstResponseForGet:
-              // first response for get
-              if (decodeResponse(data) === 0) {
-                binaryState = BM_FileData;
-                const rec = new Uint8Array(1);
-                rec[0] = 0;
-                ws.send(rec);
-              }
-
-              break;
-
-            case BM_FileData:
-              // file data
-              const sz = data[0] | data[1] << 8;
-
-              if (data.length === 2 + sz) {
-                // we assume that the data comes in single chunks
-                if (sz === 0) {
-                  // end of file
-                  binaryState = BM_FinalResponseForGet;
-                } else {
-                  if (!getFileData) { throw new Error('get_file_data is empty'); }
-
-                  // accumulate incoming data to get_file_data
-                  const new_buf = new Uint8Array(getFileData.length + sz);
-
-                  new_buf.set(getFileData);
-                  new_buf.set(data.slice(2), getFileData.length);
-
-                  getFileData = new_buf;
-
-                  updateFileStatus(`Getting ${getFileName}, ${getFileData.length} bytes`);
-
-                  const rec = new Uint8Array(1);
-                  rec[0] = 0;
-                  ws.send(rec);
-                }
-              } else {
-                binaryState = BM_None;
-              }
-
-              break;
-
-            case BM_FinalResponseForGet:
-              // final response
-              if (decodeResponse(data) === 0) {
-                if (!getFileName) { throw new Error('get_file_name is empty'); }
-                if (!getFileData) { throw new Error('get_file_data is empty'); }
-
-                updateFileStatus(`Got ${getFileName}, ${getFileData.length} bytes`);
-
-                if (getFileHandler) {
-                  getFileHandler(new Blob([getFileData], { type: 'application/octet-stream' }));
-
-                  getFileHandler = null;
-                }
-              } else {
-                updateFileStatus(`Failed getting ${getFileName}`);
-
-                // TODO: Call getFileHandler with error code
-
-                getFileHandler = null;
-              }
-
-              binaryState = BM_None;
-
-              break;
-
-            case BM_ResponseForGetVer:
-              // first (and last) response for GET_VER
-              console.log('GET_VER', data);
-              binaryState = BM_None;
-
-              break;
-          }
-
-          return;
-        }
-
-        const result: string = event.data;
-
-        // console.log(`[${result}]`, result.charCodeAt(0));
-
-        // if (!jsonHandler && term) {
-        //   term.write(result);
-        // }
-
-        eventHandlers.data(result);
-
-        // Data is send one character at a time
-        receiveBuffer += result;
-
-        // Only when we receive a new line character do we have a complete JSON message
-        while (receiveBuffer.indexOf('\n') !== -1) {
-          const [line, ...remaining] = receiveBuffer.split('\n');
-
-          eventHandlers.line(line);
-
-          receiveBuffer = remaining.join('\n');
-
-          // Crude but effective...
-          const isJson = line[0] === '[' || line[0] === '{';
-
-          if (isJson && jsonHandler) {
-            try {
-              jsonHandler(JSON.parse(line));
-            } catch (e) {
-              console.error('Failed to parse JSON', line, e);
+            // send file data in chunks
+            for (let offset = 0; offset < putFileData.length; offset += 1024) {
+              ws.send(putFileData.slice(offset, offset + 1024));
             }
 
-            jsonHandler = null;
+            binaryState = BM_FinalResponseForPut;
           }
+
+          break;
+
+        case BM_FinalResponseForPut:
+          // final response for put
+          if (decodeResponse(data) === 0) {
+            if (!putFileData) { throw new Error('put_file_data is empty'); }
+
+            updateFileStatus(`Sent ${putFileName}, ${putFileData.length} bytes`);
+
+            if (putFileHandler) {
+              putFileHandler();
+
+              putFileHandler = null;
+            }
+          } else {
+            updateFileStatus(`Failed sending ${putFileName}`);
+
+            // TODO: Call putFileHandler with error code
+
+            putFileHandler = null;
+          }
+
+          binaryState = BM_None;
+
+          break;
+
+        case BM_FirstResponseForGet:
+          // first response for get
+          if (decodeResponse(data) === 0) {
+            binaryState = BM_FileData;
+            const rec = new Uint8Array(1);
+            rec[0] = 0;
+            ws.send(rec);
+          }
+
+          break;
+
+        case BM_FileData:
+          // file data
+          const sz = data[0] | data[1] << 8;
+
+          if (data.length === 2 + sz) {
+            // we assume that the data comes in single chunks
+            if (sz === 0) {
+              // end of file
+              binaryState = BM_FinalResponseForGet;
+            } else {
+              if (!getFileData) { throw new Error('get_file_data is empty'); }
+
+              // accumulate incoming data to get_file_data
+              const new_buf = new Uint8Array(getFileData.length + sz);
+
+              new_buf.set(getFileData);
+              new_buf.set(data.slice(2), getFileData.length);
+
+              getFileData = new_buf;
+
+              updateFileStatus(`Getting ${getFileName}, ${getFileData.length} bytes`);
+
+              const rec = new Uint8Array(1);
+              rec[0] = 0;
+              ws.send(rec);
+            }
+          } else {
+            binaryState = BM_None;
+          }
+
+          break;
+
+        case BM_FinalResponseForGet:
+          // final response
+          if (decodeResponse(data) === 0) {
+            if (!getFileName) { throw new Error('get_file_name is empty'); }
+            if (!getFileData) { throw new Error('get_file_data is empty'); }
+
+            updateFileStatus(`Got ${getFileName}, ${getFileData.length} bytes`);
+
+            if (getFileHandler) {
+              getFileHandler(new Blob([getFileData], { type: 'application/octet-stream' }));
+
+              getFileHandler = null;
+            }
+          } else {
+            updateFileStatus(`Failed getting ${getFileName}`);
+
+            // TODO: Call getFileHandler with error code
+
+            getFileHandler = null;
+          }
+
+          binaryState = BM_None;
+
+          break;
+
+        case BM_ResponseForGetVer:
+          // first (and last) response for GET_VER
+          console.log('GET_VER', data);
+          binaryState = BM_None;
+
+          break;
+      }
+
+      return;
+    }
+
+    const result: string = event.data;
+
+    eventHandlers.data(result);
+
+    // Data is send one character at a time
+    receiveBuffer += result;
+
+    // Only when we receive a new line character do we have a complete JSON message
+    while (receiveBuffer.indexOf('\n') !== -1) {
+      const [line, ...remaining] = receiveBuffer.split('\n');
+
+      eventHandlers.line(line);
+
+      receiveBuffer = remaining.join('\n');
+
+      // Crude but effective...
+      const isJson = line[0] === '[' || line[0] === '{';
+
+      if (isJson && jsonHandler) {
+        try {
+          jsonHandler(JSON.parse(line));
+        } catch (e) {
+          console.error('Failed to parse JSON', line, e);
         }
-      };
-    };
 
-    ws.onclose = () => {
-      connected = false;
-
-      reconnect();
-    };
+        jsonHandler = null;
+      }
+    }
   }
 
   function send(data: string) {
+    if (!ws) {
+      throw new Error('Websocket not available');
+    }
+
     data = `${data.replace(/\n/g, '\r')}`;
 
     try {
@@ -425,6 +504,10 @@ export function micropythonWs(): MicropythonWs {
 
   function putFile() {
     return new Promise<void>((resolve, reject) => {
+      if (!ws) {
+        throw new Error('Websocket not available');
+      }
+
       if (getFileHandler || putFileHandler) {
         return reject(new Error('A file transfer is already in progress'));
       }
@@ -452,6 +535,10 @@ export function micropythonWs(): MicropythonWs {
     }
 
     return new Promise<Blob>((resolve, reject) => {
+      if (!ws) {
+        throw new Error('Websocket not available');
+      }
+
       if (getFileHandler || putFileHandler) {
         return reject(new Error('A file transfer is already in progress'));
       }
@@ -478,6 +565,10 @@ export function micropythonWs(): MicropythonWs {
   }
 
   function getVer() {
+    if (!ws) {
+      throw new Error('Websocket not available');
+    }
+
     const rec = getRequestRecord(RT_GetVer);
 
     // initiate GET_VER

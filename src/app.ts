@@ -1,4 +1,4 @@
-import { dummyWs, micropythonWs } from './micropython-ws';
+import { dummyWs, micropythonWs, SocketStatus } from './micropython-ws';
 import { App, EduBlocksXML, PythonScript } from './types';
 import { joinDirNameAndFileName } from './lib';
 
@@ -73,8 +73,8 @@ export async function newApp(): Promise<App> {
       return ws.sendFile(f);
     },
 
-    onOpen(handler: () => void) {
-      ws.on('open', handler);
+    onSocketStatusChange(handler: (status: SocketStatus) => void) {
+      ws.on('statusChange', handler);
     },
   };
 }

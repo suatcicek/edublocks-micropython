@@ -16,7 +16,7 @@ export default function Nav(props: NavProps) {
   }
 
   return (
-    <nav>
+    <nav class="Nav">
       <a class="brand">
         <img class="logo" src="images/logo.png" />
         <span>EduBlocks</span>

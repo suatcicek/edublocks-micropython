@@ -2,9 +2,10 @@ import React = require('preact');
 import { Component } from 'preact';
 
 import { FileType } from '../types';
+import { SocketStatus } from '../micropython-ws';
 
 interface StatusProps {
-  connected: boolean;
+  connectionStatus: SocketStatus;
   fileName: string | null;
   fileType: FileType;
   sync: boolean;
@@ -36,7 +37,7 @@ export default function Status(props: StatusProps) {
 
       {!props.sync ? <span class="Status__sync">(Not in sync with block view)</span> : null}
 
-      <span class={`Status__connection ${props.connected ? 'Status__connection--connected' : 'Status__connection--disconnected'}`}>{props.connected ? 'Connected' : 'Disconnected'}</span>
+      <span class={`Status__connection Status__connection--${props.connectionStatus}`}>{props.connectionStatus}</span>
     </div>
   );
 }

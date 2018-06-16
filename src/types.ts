@@ -1,4 +1,4 @@
-import { MpFile } from './micropython-ws';
+import { MpFile, SocketStatus } from './micropython-ws';
 
 export const EduBlocksXML = 'xml';
 export const PythonScript = 'py';
@@ -52,5 +52,5 @@ export interface App {
 
   sendFile(f: File): void;
 
-  onOpen(handler: () => void): void;
+  onSocketStatusChange(handler: (status: SocketStatus) => void): void;
 }
