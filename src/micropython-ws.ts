@@ -531,7 +531,7 @@ print(json.dumps(network_names))
       const python = `
 import json
 from lib import fs
-print(json.dumps(fs.listdir(${cwd})))
+print(json.dumps(fs.listdir('${cwd}')))
 `;
 
       jsonHandler = (json) => Array.isArray(json) ? resolve(json) : [];

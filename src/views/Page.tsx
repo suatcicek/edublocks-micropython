@@ -237,6 +237,10 @@ export default class Page extends Component<PageProps, PageState> {
   private async onRun() {
     await this.save();
 
+    // const filePath = this.getDocumentFilePath();
+
+    this.props.app.runCode(this.state.doc.python || '');
+
     this.setState({ terminalOpen: true });
     this.terminalView.focus();
 
@@ -289,13 +293,17 @@ export default class Page extends Component<PageProps, PageState> {
 
     if (!this.state.doc.fileName) {
       alert('You must specify a filename in order to save');
+
+      return false;
     }
+
+    return true;
   }
 
   public async save() {
-    this.checkReadyToSave();
-
-    await this.props.app.save(this.state.doc);
+    if (this.checkReadyToSave()) {
+      await this.props.app.save(this.state.doc);
+    }
   }
 
   private async onFileSelected(result: FileSelectResult | null) {
