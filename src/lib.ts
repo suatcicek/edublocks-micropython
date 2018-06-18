@@ -49,3 +49,7 @@ export function getFileType(file: string): FileType | null {
 
   return null;
 }
+
+export function getBaseName(fileName: string) {
+  return fileName.split('.').slice(0, -1).join('.');
+}

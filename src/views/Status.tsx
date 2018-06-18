@@ -1,13 +1,12 @@
 import React = require('preact');
-import { Component } from 'preact';
 
-import { FileType } from '../types';
+import { DocumentState } from '../types';
 import { SocketStatus } from '../micropython-ws';
+import { joinDirNameAndFileName } from '../lib';
 
 interface StatusProps {
   connectionStatus: SocketStatus;
-  fileName: string | null;
-  fileType: FileType;
+  doc: DocumentState;
   sync: boolean;
 
   onChangeName(file: string): void;
@@ -15,15 +14,21 @@ interface StatusProps {
 
 export default function Status(props: StatusProps) {
   function changeName() {
-    const fileName = prompt('Enter new filename', props.fileName || '');
+    const fileName = prompt('Enter new filename', props.doc.fileName || '');
 
     if (fileName) {
       props.onChangeName(fileName);
     }
   }
 
+  function getDocumentFilePath() {
+    const { doc } = props;
+
+    return joinDirNameAndFileName(doc.dirName, doc.fileName);
+  }
+
   function getFileTypeString(): string {
-    switch (props.fileType) {
+    switch (props.doc.fileType) {
       case 'xml':
         return 'Blockly Script';
       case 'py':
@@ -33,7 +38,7 @@ export default function Status(props: StatusProps) {
 
   return (
     <div class="Status">
-      <span class="Status__filename" onClick={() => changeName()}>{props.fileName || '[New file]'} ({getFileTypeString()})</span>
+      <span class="Status__filename" onClick={() => changeName()}>{getDocumentFilePath() || '[New file]'} ({getFileTypeString()})</span>
 
       {!props.sync ? <span class="Status__sync">(Not in sync with block view)</span> : null}
 

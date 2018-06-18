@@ -8,7 +8,7 @@ import TerminalView from './TerminalView';
 import FileModel from './FileModal';
 import Status from './Status';
 import { App, EduBlocksXML, PythonScript, FileType, DocumentState, BlocklyDocumentState, PythonDocumentState, FileSelectResult } from '../types';
-import { sleep, joinDirNameAndFileName, getFileType } from '../lib';
+import { sleep, joinDirNameAndFileName, getFileType, getBaseName } from '../lib';
 import { MpFile, SocketStatus } from '../micropython-ws';
 
 const ViewModeBlockly = 'blockly';
@@ -65,6 +65,26 @@ export default class Page extends Component<PageProps, PageState> {
 
     if (inferredType === null) {
       fileName = `${fileName}.${EduBlocksXML}`;
+    }
+
+    const baseName = getBaseName(fileName);
+
+    if (baseName.length === 0) {
+      alert('Filename is empty');
+
+      return;
+    }
+
+    if (!/^([a-z]|[0-9]|_)+$/.test(baseName)) {
+      alert('Filenames can only contain lowercase letters and underscores');
+
+      return;
+    }
+
+    if (baseName.charCodeAt(0) >= 48 && baseName.charCodeAt(0) <= 57) {
+      alert('Filename must not being with a number');
+
+      return;
     }
 
     const fileType = inferredType || EduBlocksXML;
@@ -359,8 +379,7 @@ export default class Page extends Component<PageProps, PageState> {
 
         <Status
           connectionStatus={this.state.connectionStatus}
-          fileName={this.getDocumentFilePath()}
-          fileType={this.state.doc.fileType}
+          doc={this.state.doc}
           sync={this.state.doc.pythonClean}
 
           onChangeName={(file) => this.renameDocument(file)} />

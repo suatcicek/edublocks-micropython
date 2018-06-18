@@ -1,6 +1,6 @@
 import { dummyWs, micropythonWs, SocketStatus } from './micropython-ws';
 import { App, EduBlocksXML, PythonScript, DocumentState } from './types';
-import { joinDirNameAndFileName } from './lib';
+import { joinDirNameAndFileName, getBaseName } from './lib';
 
 export async function newApp(): Promise<App> {
   const host = getHost();
@@ -52,11 +52,9 @@ export async function newApp(): Promise<App> {
         throw new Error('Must be saved');
       }
 
-      const moduleName = doc.fileName.split('.').slice(0, -1).join('.');
+      const moduleName = getBaseName(doc.fileName);
 
       const code = `
-uos.chdir('${doc.dirName}')
-
 import sys
 if '${moduleName}' in sys.modules: del sys.modules['${moduleName}']
 import ${moduleName}
