@@ -40,7 +40,6 @@ interface MicropythonWs {
   connect(url: string): Promise<void>;
   sendData(data: string): void;
   runCode(code: string): void;
-  // runLine(code: string): void;
 
   getVer(): void;
   sendFile(f: File): void;
@@ -78,8 +77,6 @@ export function dummyWs(): MicropythonWs {
     sendData(data: string) { },
 
     runCode(_code) { },
-
-    // runLine(_code) { },
 
     getVer() { },
 
@@ -149,8 +146,10 @@ export function micropythonWs(): MicropythonWs {
   let getFileData: Uint8Array | null = null;
 
   // Oneshot handlers called in WS receive
-  let putFileHandler: (() => void) | null = null;
-  let getFileHandler: ((blob: Blob) => void) | null = null;
+  // let putFileHandler: (() => void) | null = null;
+  // let getFileHandler: ((blob: Blob) => void) | null = null;
+
+  let fileHandler: ((err: Error | null, blob?: Blob) => void) | null;
 
   let jsonHandler: ((json: object | any[]) => void) | null = null;
 
@@ -195,8 +194,7 @@ export function micropythonWs(): MicropythonWs {
     }
 
     receiveBuffer = '';
-    getFileHandler = null;
-    putFileHandler = null;
+    fileHandler = null;
 
     ws = new WebSocket(url);
 
@@ -212,9 +210,6 @@ export function micropythonWs(): MicropythonWs {
         ws.close();
         ws = null;
 
-        // statusChange('disconnected');
-        // attemptReconnect();
-
         connectionWatch = null;
       }
     }, 5000);
@@ -228,12 +223,6 @@ export function micropythonWs(): MicropythonWs {
     if (!ws) {
       throw new Error('Websocket not available');
     }
-
-    // if (connectionWatch) {
-    //   clearTimeout(connectionWatch);
-
-    //   connectionWatch = null;
-    // }
 
     // The default login password for the terminal
     ws.send(`${WebReplPassword}\r`);
@@ -251,12 +240,6 @@ export function micropythonWs(): MicropythonWs {
 
   function onClose() {
     statusChange('disconnected');
-
-    // if (connectionWatch) {
-    //   clearTimeout(connectionWatch);
-
-    //   connectionWatch = null;
-    // }
 
     attemptReconnect();
   }
@@ -300,17 +283,19 @@ export function micropythonWs(): MicropythonWs {
 
             updateFileStatus(`Sent ${putFileName}, ${putFileData.length} bytes`);
 
-            if (putFileHandler) {
-              putFileHandler();
+            if (fileHandler) {
+              fileHandler(null);
 
-              putFileHandler = null;
+              fileHandler = null;
             }
           } else {
             updateFileStatus(`Failed sending ${putFileName}`);
 
-            // TODO: Call putFileHandler with error code
+            if (fileHandler) {
+              fileHandler(new Error('Failed to put'));
+            }
 
-            putFileHandler = null;
+            fileHandler = null;
           }
 
           binaryState = BM_None;
@@ -368,17 +353,19 @@ export function micropythonWs(): MicropythonWs {
 
             updateFileStatus(`Got ${getFileName}, ${getFileData.length} bytes`);
 
-            if (getFileHandler) {
-              getFileHandler(new Blob([getFileData], { type: 'application/octet-stream' }));
+            if (fileHandler) {
+              fileHandler(null, new Blob([getFileData], { type: 'application/octet-stream' }));
 
-              getFileHandler = null;
+              fileHandler = null;
             }
           } else {
             updateFileStatus(`Failed getting ${getFileName}`);
 
-            // TODO: Call getFileHandler with error code
+            if (fileHandler) {
+              fileHandler(new Error('Failed to get'));
 
-            getFileHandler = null;
+              fileHandler = null;
+            }
           }
 
           binaryState = BM_None;
@@ -508,11 +495,17 @@ export function micropythonWs(): MicropythonWs {
         throw new Error('Websocket not available');
       }
 
-      if (getFileHandler || putFileHandler) {
+      if (fileHandler) {
         return reject(new Error('A file transfer is already in progress'));
       }
 
-      putFileHandler = resolve;
+      fileHandler = (err) => {
+        if (err) {
+          return reject(err);
+        }
+
+        resolve();
+      };
 
       if (!putFileName) { return reject(new Error('put_file_name is empty')); }
       if (!putFileData) { return reject(new Error('put_file_data is empty')); }
@@ -539,11 +532,21 @@ export function micropythonWs(): MicropythonWs {
         throw new Error('Websocket not available');
       }
 
-      if (getFileHandler || putFileHandler) {
+      if (fileHandler) {
         return reject(new Error('A file transfer is already in progress'));
       }
 
-      getFileHandler = resolve;
+      fileHandler = (err, blob) => {
+        if (err) {
+          return reject(err);
+        }
+
+        if (!blob) {
+          throw new Error('No blob!');
+        }
+
+        resolve(blob);
+      };
 
       // WEBREPL_FILE = "<2sBBQLH64s"
       const rec = getRequestRecord(RT_GetFile, undefined, filePath);

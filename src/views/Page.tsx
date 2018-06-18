@@ -236,9 +236,9 @@ export default class Page extends Component<PageProps, PageState> {
 
   private async onRun() {
     if (await this.save()) {
-      // const filePath = this.getDocumentFilePath();
+      // this.props.app.runCode(this.state.doc.python || '');
 
-      this.props.app.runCode(this.state.doc.python || '');
+      this.props.app.runDoc(this.state.doc);
 
       this.setState({ terminalOpen: true });
       this.terminalView.focus();

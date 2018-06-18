@@ -1,5 +1,5 @@
 import { dummyWs, micropythonWs, SocketStatus } from './micropython-ws';
-import { App, EduBlocksXML, PythonScript } from './types';
+import { App, EduBlocksXML, PythonScript, DocumentState } from './types';
 import { joinDirNameAndFileName } from './lib';
 
 export async function newApp(): Promise<App> {
@@ -11,7 +11,7 @@ export async function newApp(): Promise<App> {
 
   return {
     assignTerminal(terminal) {
-      ws.on('data', (data) => terminal.write(data));
+      ws.on('data', (data: string) => terminal.write(data));
 
       terminal.onData(ws.sendData);
     },
@@ -47,9 +47,23 @@ export async function newApp(): Promise<App> {
       ws.runCode(code);
     },
 
-    // runLine(code) {
-    //   ws.runLine(code);
-    // },
+    runDoc(doc: DocumentState) {
+      if (!doc.fileName) {
+        throw new Error('Must be saved');
+      }
+
+      const moduleName = doc.fileName.split('.').slice(0, -1).join('.');
+
+      const code = `
+uos.chdir('${doc.dirName}')
+
+import sys
+if '${moduleName}' in sys.modules: del sys.modules['${moduleName}']
+import ${moduleName}
+      `;
+
+      ws.runCode(code);
+    },
 
     async listFiles(cwd: string) {
       const files = await ws.listFiles(cwd);
