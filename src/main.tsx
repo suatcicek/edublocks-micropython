@@ -8,7 +8,7 @@ async function main() {
 
   const Blockly = (self as any).Blockly;
   const pageDiv = getElementByIdSafe('page');
-
+  Blockly.HSV_VALUE = 0.9;
   if (!pageDiv.parentElement) { return; }
 
   React.render(<Page app={app} ref={rendered} />, pageDiv.parentElement, pageDiv);

@@ -19,7 +19,6 @@ export default function Nav(props: NavProps) {
     <nav class="Nav">
       <a class="brand">
         <img class="logo" src="images/logo.png" />
-        <span>EduBlocks</span>
       </a>
 
       <input id="bmenub" type="checkbox" class="show" />
