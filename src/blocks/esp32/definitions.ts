@@ -23,6 +23,18 @@ export default function define(Blocks: Blockly.BlockDefinitions) {
     },
   };
 
+  Blocks['import_neopixel'] = {
+    init() {
+      this.appendDummyInput()
+        .appendField('import neopixel');
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setColour(336);
+      this.setTooltip('Imports the neopixel library for LED control.');
+      this.setHelpUrl('http://www.example.com/');
+    },
+  };
+
   Blocks['oled_printLine'] = {
     init() {
       this.appendDummyInput()
@@ -97,6 +109,50 @@ export default function define(Blocks: Blockly.BlockDefinitions) {
       this.setNextStatement(true, null);
       this.setColour(120);
       this.setTooltip('Set pin value');
+      this.setHelpUrl('http://www.example.com/');
+    },
+  };
+
+  Blocks['neopixel_declare'] = {
+    init() {
+      this.appendDummyInput()
+        .appendField('np = neopixel.NeoPixel(')
+        .appendField(new Blockly.FieldTextInput('pin'), 'pin_name')
+        .appendField(', ')
+        .appendField(new Blockly.FieldNumber(8), 'length')
+        .appendField(')');
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setColour(120);
+      this.setTooltip('Declare NeoPixel strip');
+      this.setHelpUrl('http://www.example.com/');
+    },
+  };
+
+  Blocks['led_colour_set'] = {
+    init() {
+      this.appendDummyInput()
+        .appendField('np[')
+        .appendField(new Blockly.FieldTextInput('index'), 'index')
+        .appendField('] = (')
+        .appendField(new Blockly.FieldColour('colour1'), 'colour1')
+        .appendField(')');
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setColour(120);
+      this.setTooltip('Set LED colour');
+      this.setHelpUrl('http://www.example.com/');
+    },
+  };
+
+  Blocks['neopixel_write'] = {
+    init() {
+      this.appendDummyInput()
+        .appendField('np.write()');
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setColour(120);
+      this.setTooltip('Write the colours to the LED strip.');
       this.setHelpUrl('http://www.example.com/');
     },
   };
