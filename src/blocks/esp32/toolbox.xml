@@ -1,9 +1,9 @@
 <category name="ESP32" colour="120">
-  <block type="import_oled"></block>
+  <block type="import_screen"></block>
   <block type="import_machine"></block>
   <block type="import_neopixel"></block>
 
-  <block type="oled_printLine"></block>
+  <block type="screen_print_line"></block>
 
   <block type="pin_in_declare"></block>
   <block type="pin_out_declare"></block>

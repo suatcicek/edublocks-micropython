@@ -1,12 +1,12 @@
 export default function define(Blocks: Blockly.BlockDefinitions) {
-  Blocks['import_oled'] = {
+  Blocks['import_screen'] = {
     init() {
       this.appendDummyInput()
-        .appendField('import oled');
+        .appendField('import screen');
       this.setPreviousStatement(true, null);
       this.setNextStatement(true, null);
       this.setColour(336);
-      this.setTooltip('Imports the OLED screen library.');
+      this.setTooltip('Imports the screen screen library.');
       this.setHelpUrl('http://www.example.com/');
     },
   };
@@ -35,10 +35,10 @@ export default function define(Blocks: Blockly.BlockDefinitions) {
     },
   };
 
-  Blocks['oled_printLine'] = {
+  Blocks['screen_print_line'] = {
     init() {
       this.appendDummyInput()
-        .appendField('oled.printLine(')
+        .appendField('screen.print_line(')
         .appendField(new Blockly.FieldTextInput('\'Hello World!\''), 'text')
         .appendField(',')
         .appendField(new Blockly.FieldNumber(0), 'line')

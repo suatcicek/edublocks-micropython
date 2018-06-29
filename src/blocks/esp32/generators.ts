@@ -1,6 +1,6 @@
 export default function define(Python: Blockly.BlockGenerators) {
-  Python['import_oled'] = () => {
-    return 'import oled\n';
+  Python['import_screen'] = () => {
+    return 'import screen\n';
   };
 
   Python['import_machine'] = () => {
@@ -11,11 +11,11 @@ export default function define(Python: Blockly.BlockGenerators) {
     return 'import neopixel\n';
   };
 
-  Python['oled_printLine'] = (block) => {
+  Python['screen_print_line'] = (block) => {
     const text = block.getFieldValue('text');
     const line = block.getFieldValue('line');
 
-    return `oled.printLine(${text}, ${line})\n`;
+    return `screen.print_line(${text}, ${line})\n`;
   };
 
   Python['pin_in_declare'] = (block) => {

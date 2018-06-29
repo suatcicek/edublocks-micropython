@@ -52,14 +52,14 @@ export default class SelectModal extends Component<SelectModalProps, SelectModal
 
         <label for="modal_1" class="overlay"></label>
 
-        <article>
+        <article class="SelectModel__container">
 
-          <header>
+          <header class="SelectModal__header">
             <h3>{this.props.title}</h3>
-            <a class="close" onClick={() => this.props.onButtonClick('close')}>&times;</a>
+            <a class="SelectModal__close close" onClick={() => this.props.onButtonClick('close')}>&times;</a>
           </header>
 
-          <section class="content">
+          <section class="SelectModel__content">
             <div class="SelectModal__grid">
               {getOptions()}
             </div>

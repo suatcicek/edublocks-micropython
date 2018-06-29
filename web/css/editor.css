@@ -36,9 +36,28 @@ body {
 
 /* `SelectModal` Component
 ---------------------------------------------------------------- */
+.SelectModel__container {
+  background: none !important;
+  border: solid 1px #000 !important;
+}
+
+.SelectModal__header {
+  background: #8E2DE2;
+  color: #fff;
+  border-bottom: none !important;
+}
+
+.SelectModal__close {
+  color: #fff;
+}
+
+.SelectModel__content {
+  background: #fff;
+  padding: .6em .8em !important;
+}
+
 .SelectModal__buttons {
-  /* display: flex !important;
-  flex-direction: row-reverse; */
+  background: #eee;
   overflow: hidden;
 }
 
