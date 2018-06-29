@@ -63,6 +63,18 @@ import ${moduleName}
       ws.runCode(code);
     },
 
+    async setStartup(doc: DocumentState) {
+      if (!doc.fileName) {
+        throw new Error('Must be saved');
+      }
+
+      const moduleName = getBaseName(doc.fileName);
+
+      const script = `import ${moduleName}\n`;
+
+      await ws.sendFileAsText('/user/main.py', script);
+    },
+
     async listFiles(cwd: string) {
       const files = await ws.listFiles(cwd);
 

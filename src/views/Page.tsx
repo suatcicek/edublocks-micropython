@@ -10,6 +10,10 @@ import Status from './Status';
 import { App, EduBlocksXML, PythonScript, FileType, DocumentState, BlocklyDocumentState, PythonDocumentState, FileSelectResult } from '../types';
 import { sleep, joinDirNameAndFileName, getFileType, getBaseName } from '../lib';
 import { MpFile, SocketStatus } from '../micropython-ws';
+import SelectModal, { SelectModalOption } from './SelectModal';
+
+type AdvancedFunction = 'New Python Script' | 'Export' | 'Set As Startup Script';
+const AdvancedFunctions: AdvancedFunction[] = ['New Python Script', 'Export', 'Set As Startup Script'];
 
 const ViewModeBlockly = 'blockly';
 const ViewModePython = 'python';
@@ -25,7 +29,7 @@ interface PageState {
   viewMode: ViewMode;
   terminalOpen: boolean;
 
-  fileModelOpen: boolean;
+  modal: null | 'File' | 'Functions';
 
   doc: Readonly<DocumentState>;
 }
@@ -43,7 +47,7 @@ export default class Page extends Component<PageProps, PageState> {
       viewMode: ViewModeBlockly,
       terminalOpen: false,
 
-      fileModelOpen: false,
+      modal: null,
 
       doc: {
         fileType: EduBlocksXML,
@@ -61,10 +65,22 @@ export default class Page extends Component<PageProps, PageState> {
   }
 
   private renameDocument(fileName: string) {
-    const inferredType = getFileType(fileName);
+    const { doc } = this.state;
 
-    if (inferredType === null) {
-      fileName = `${fileName}.${EduBlocksXML}`;
+    let fileType = getFileType(fileName);
+
+    if (fileType === null) {
+      if (doc.fileType === EduBlocksXML) {
+        fileName = `${fileName}.${EduBlocksXML}`;
+
+        fileType = EduBlocksXML;
+      } else if (doc.fileType === PythonScript) {
+        fileName = `${fileName}.${PythonScript}`;
+
+        fileType = PythonScript;
+      } else {
+        throw new Error('Invalid type');
+      }
     }
 
     const baseName = getBaseName(fileName);
@@ -86,10 +102,6 @@ export default class Page extends Component<PageProps, PageState> {
 
       return;
     }
-
-    const fileType = inferredType || EduBlocksXML;
-
-    const doc: DocumentState = this.state.doc;
 
     if (fileType === 'xml' && doc.fileType === 'xml') {
       const xmlDoc: BlocklyDocumentState = {
@@ -205,7 +217,7 @@ export default class Page extends Component<PageProps, PageState> {
     this.setState({ doc });
   }
 
-  private new() {
+  private newEduBlocksScript() {
     const doc: DocumentState = {
       fileType: EduBlocksXML,
       dirName: '/user',
@@ -218,6 +230,20 @@ export default class Page extends Component<PageProps, PageState> {
     this.setState({ doc });
 
     this.switchView('blockly');
+  }
+
+  private newPythonScript() {
+    const doc: DocumentState = {
+      fileType: PythonScript,
+      dirName: '/user',
+      fileName: null,
+      python: null,
+      pythonClean: false,
+    };
+
+    this.setState({ doc });
+
+    this.switchView('python');
   }
 
   protected async componentDidMount() {
@@ -254,7 +280,7 @@ export default class Page extends Component<PageProps, PageState> {
     }
   }
 
-  private async onRun() {
+  private async run() {
     if (await this.save()) {
       // this.props.app.runCode(this.state.doc.python || '');
 
@@ -267,12 +293,12 @@ export default class Page extends Component<PageProps, PageState> {
     }
   }
 
-  public async openFileListModal() {
-    this.setState({ fileModelOpen: true });
+  public openFileListModal() {
+    this.setState({ modal: 'File' });
   }
 
   public closeFileListModal() {
-    this.setState({ fileModelOpen: false });
+    this.setState({ modal: null });
   }
 
   private handleFileContents(dirName: string, fileName: string, contents: string): 0 {
@@ -366,15 +392,67 @@ export default class Page extends Component<PageProps, PageState> {
     return joinDirNameAndFileName(doc.dirName, doc.fileName);
   }
 
+  private export() {
+    const { doc } = this.state;
+
+    const fileName = doc.fileName || `untitled.${doc.fileType}`;
+
+    if (doc.fileType === EduBlocksXML) {
+      const blob = new Blob([doc.xml], { type: 'text/xml' });
+
+      saveAs(blob, fileName);
+    }
+
+    if (doc.fileType === PythonScript) {
+      const blob = new Blob([doc.python], { type: 'text/xml' });
+
+      saveAs(blob, fileName);
+    }
+  }
+
+  private getAdvancedFunctionList(): SelectModalOption[] {
+    return AdvancedFunctions.map((func) => ({
+      label: func,
+      obj: func,
+    }));
+  }
+
+  private openAdvancedFunctionDialog() {
+    this.setState({ modal: 'Functions' });
+  }
+
+  private closeAdvancedFunctionDialog() {
+    this.setState({ modal: null });
+  }
+
+  private async runAdvancedFunction(func: AdvancedFunction) {
+    if (func === 'New Python Script') {
+      this.newPythonScript();
+    }
+
+    if (func === 'Export') {
+      this.export();
+    }
+
+    if (func === 'Set As Startup Script') {
+      if (await this.save()) {
+        await this.props.app.setStartup(this.state.doc);
+      }
+    }
+
+    this.closeAdvancedFunctionDialog();
+  }
+
   public render() {
     return (
       <div class="Page">
         <Nav
-          onRun={() => this.onRun()}
+          onFunction={() => this.openAdvancedFunctionDialog()}
+          onRun={() => this.run()}
           onDownloadPython={() => { }}
           onOpen={() => this.openFileListModal()}
           onSave={() => this.save()}
-          onNew={() => this.new()}
+          onNew={() => this.newEduBlocksScript()}
           onSelectFile={(file) => this.onSelectFile(file)} />
 
         <Status
@@ -412,10 +490,21 @@ export default class Page extends Component<PageProps, PageState> {
           onClose={() => this.onTerminalClose()} />
 
         {
-          this.state.fileModelOpen &&
+          this.state.modal === 'File' &&
           <FileModel
             app={this.props.app}
             onSelect={(file) => this.onFileSelected(file)} />
+        }
+
+        {
+          this.state.modal === 'Functions' &&
+          <SelectModal
+            title="Advanced Functions"
+            selectLabel="Go"
+            buttons={[]}
+            options={this.getAdvancedFunctionList()}
+            onSelect={(func) => this.runAdvancedFunction(func.label as AdvancedFunction)}
+            onButtonClick={(key) => key === 'close' && this.closeAdvancedFunctionDialog()} />
         }
       </div>
     );

@@ -56,6 +56,32 @@ interface MicropythonWs {
 
 const stub = () => void 0;
 
+function getSample(filePath: string) {
+  const fileName = filePath.slice(9);
+
+  // These have to as if statement due to BRFS parsing the AST at compile time
+
+  if (fileName === 'doubler.xml') {
+    return fs.readFileSync(path.join(__dirname, 'resources', 'samples', 'doubler.xml'), 'utf-8');
+  }
+
+  if (fileName === 'led_strip.xml') {
+    return fs.readFileSync(path.join(__dirname, 'resources', 'samples', 'led_strip.xml'), 'utf-8');
+  }
+
+  if (fileName === 'pin_reader.xml') {
+    return fs.readFileSync(path.join(__dirname, 'resources', 'samples', 'pin_reader.xml'), 'utf-8');
+  }
+
+  return '';
+}
+
+function listSamples() {
+  const samples = fs.readdirSync(path.join(__dirname, 'resources', 'samples'));
+
+  return samples.map((sample) => ({ filename: sample, isdir: false }));
+}
+
 export function dummyWs(): MicropythonWs {
   const eventHandlers: Events = {
     statusChange: stub,
@@ -94,8 +120,8 @@ export function dummyWs(): MicropythonWs {
         throw new Error('Path must be absolute');
       }
 
-      if (filePath === '/user/nfile1.xml') {
-        return fs.readFileSync(path.join(__dirname, 'resources', 'doubler.xml'), 'utf-8');
+      if (filePath.slice(0, 9) === '/samples/') {
+        return getSample(filePath);
       }
 
       return '';
@@ -113,16 +139,21 @@ export function dummyWs(): MicropythonWs {
       if (cwd === '/') {
         return [
           { filename: 'user', isdir: true },
-          { filename: 'file1.xml', isdir: false },
+          { filename: 'samples', isdir: true },
+          { filename: 'dummy1.xml', isdir: false },
         ];
+      }
+
+      if (cwd === '/samples') {
+        return listSamples();
       }
 
       if (cwd === '/user') {
         return [
-          { filename: 'nfile1.xml', isdir: false },
-          { filename: 'nfile2.xml', isdir: false },
-          { filename: 'nfile3.xml', isdir: false },
-          { filename: 'nfile4.xml', isdir: false },
+          { filename: 'user1.xml', isdir: false },
+          { filename: 'user2.xml', isdir: false },
+          { filename: 'user3.xml', isdir: false },
+          { filename: 'user4.xml', isdir: false },
         ];
       }
 
@@ -562,6 +593,10 @@ export function micropythonWs(): MicropythonWs {
   }
 
   async function getFileAsText(filePath: string) {
+    if (filePath.slice(0, 9) === '/samples/') {
+      return getSample(filePath);
+    }
+
     const blob = await getFile(filePath);
 
     return readText(blob);
@@ -619,6 +654,10 @@ print(json.dumps(network_names))
   function listFiles(cwd: string): Promise<MpFile[]> {
     if (cwd.length === 0 || cwd[0] !== '/') {
       throw new Error('Path must be absolute');
+    }
+
+    if (cwd === '/samples') {
+      return Promise.resolve(listSamples());
     }
 
     return new Promise<MpFile[]>((resolve) => {

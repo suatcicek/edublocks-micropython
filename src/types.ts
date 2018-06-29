@@ -44,6 +44,7 @@ export interface App {
 
   runCode(code: string): void;
   runDoc(doc: DocumentState): void;
+  setStartup(doc: DocumentState): Promise<void>;
 
   listFiles(cwd: string): Promise<MpFile[]>;
 

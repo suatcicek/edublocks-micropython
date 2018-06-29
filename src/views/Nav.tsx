@@ -2,6 +2,7 @@ import React = require('preact');
 import { Component } from 'preact';
 
 interface NavProps {
+  onFunction(): void;
   onDownloadPython(): void;
   onNew(): void;
   onOpen(): void;
@@ -30,6 +31,10 @@ export default function Nav(props: NavProps) {
         {/* <a class="button" title="Download Python Source Code" href="javascript:void(0)" onClick={() => props.onDownloadPython()}>
           Python Download
         </a> */}
+
+        <a class="button" title="Functions" href="javascript:void(0)" onClick={() => props.onFunction()}>
+          Functions
+        </a>
 
         <a class="button icon-plus" title="New" href="javascript:void(0)" onClick={() => props.onNew()}>
           New
