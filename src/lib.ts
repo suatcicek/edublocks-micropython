@@ -51,5 +51,9 @@ export function getFileType(file: string): FileType | null {
 }
 
 export function getBaseName(fileName: string) {
+  if (fileName.indexOf('.') === -1) {
+    return fileName;
+  }
+
   return fileName.split('.').slice(0, -1).join('.');
 }
