@@ -124,6 +124,10 @@ export function dummyWs(): MicropythonWs {
         return getSample(filePath);
       }
 
+      if (filePath === '/dummy1.xml') {
+        return fs.readFileSync(path.join(__dirname, 'resources', 'samples', 'doubler.xml'), 'utf-8');
+      }
+
       return '';
     },
 

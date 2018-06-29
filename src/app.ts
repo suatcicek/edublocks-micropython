@@ -37,7 +37,7 @@ export async function newApp(): Promise<App> {
       }
 
       if (!doc.python) {
-        throw new Error('No code to run');
+        throw new Error('There is nothing to save');
       }
 
       await ws.sendFileAsText(pyFilePath, doc.python);

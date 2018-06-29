@@ -28,6 +28,7 @@ interface PageState {
   connectionStatus: SocketStatus;
   viewMode: ViewMode;
   terminalOpen: boolean;
+  dirty: boolean;
 
   modal: null | 'File' | 'Functions';
 
@@ -46,6 +47,7 @@ export default class Page extends Component<PageProps, PageState> {
       connectionStatus: 'disconnected',
       viewMode: ViewModeBlockly,
       terminalOpen: false,
+      dirty: true,
 
       modal: null,
 
@@ -150,7 +152,7 @@ export default class Page extends Component<PageProps, PageState> {
     }
   }
 
-  private readBlocklyContents(dirName: string, fileName: string, xml: string) {
+  private readBlocklyContents(dirName: string, fileName: string, xml: string, dirty: boolean) {
     const doc: DocumentState = {
       fileType: EduBlocksXML,
       dirName,
@@ -160,12 +162,12 @@ export default class Page extends Component<PageProps, PageState> {
       pythonClean: true,
     };
 
-    this.setState({ doc });
+    this.setState({ doc, dirty });
 
     this.switchView(ViewModeBlockly);
   }
 
-  private readPythonContents(dirName: string, fileName: string, python: string) {
+  private readPythonContents(dirName: string, fileName: string, python: string, dirty: boolean) {
     if (this.state.doc.python === python) { return; }
 
     const doc: DocumentState = {
@@ -177,13 +179,17 @@ export default class Page extends Component<PageProps, PageState> {
       pythonClean: false,
     };
 
-    this.setState({ doc });
+    this.setState({ doc, dirty });
 
     this.switchView(ViewModePython);
   }
 
   private updateFromBlockly(xml: string, python: string) {
     const { doc } = this.state;
+
+    // Only if the XML is changed do we need to set the dirty flag.
+    // Otherwise what is already saved on the device is assumed to be up-to-date.
+    const xmlChanged = doc.fileType === EduBlocksXML && doc.xml !== xml;
 
     if (
       doc.fileType === EduBlocksXML &&
@@ -207,14 +213,20 @@ export default class Page extends Component<PageProps, PageState> {
     };
 
     this.setState({ doc: newDoc });
+
+    if (xmlChanged) {
+      this.setState({ dirty: xmlChanged });
+    }
   }
 
   private updateFromPython(python: string) {
     if (this.state.doc.python === python) { return; }
 
+    console.log('updateFromPython', python);
+
     const doc: DocumentState = { ...this.state.doc, python, pythonClean: false };
 
-    this.setState({ doc });
+    this.setState({ doc, dirty: true });
   }
 
   private newEduBlocksScript() {
@@ -227,7 +239,7 @@ export default class Page extends Component<PageProps, PageState> {
       pythonClean: true,
     };
 
-    this.setState({ doc });
+    this.setState({ doc, dirty: true });
 
     this.switchView('blockly');
   }
@@ -241,7 +253,7 @@ export default class Page extends Component<PageProps, PageState> {
       pythonClean: false,
     };
 
-    this.setState({ doc });
+    this.setState({ doc, dirty: true });
 
     this.switchView('python');
   }
@@ -302,18 +314,22 @@ export default class Page extends Component<PageProps, PageState> {
   }
 
   private handleFileContents(dirName: string, fileName: string, contents: string): 0 {
+    let sample = false;
+
     if (dirName === '/samples') {
       dirName = '/user';
+
+      sample = true;
     }
 
     switch (getFileType(fileName)) {
       case EduBlocksXML:
-        this.readBlocklyContents(dirName, fileName, contents);
+        this.readBlocklyContents(dirName, fileName, contents, sample);
 
         return 0;
 
       case PythonScript:
-        this.readPythonContents(dirName, fileName, contents);
+        this.readPythonContents(dirName, fileName, contents, sample);
 
         return 0;
 
@@ -351,8 +367,20 @@ export default class Page extends Component<PageProps, PageState> {
   }
 
   public async save() {
+    if (!this.state.dirty) {
+      return true;
+    }
+
     if (this.checkReadyToSave()) {
-      await this.props.app.save(this.state.doc);
+      try {
+        await this.props.app.save(this.state.doc);
+
+        this.setState({ dirty: false });
+      } catch (err) {
+        if (err instanceof Error) {
+          alert(err.message);
+        }
+      }
 
       return true;
     }
