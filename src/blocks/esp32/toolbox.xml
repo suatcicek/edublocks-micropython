@@ -1,4 +1,4 @@
-<category name="ESP32" colour="0">
+<category name="ESP32" colour="120">
   <block type="import_oled"></block>
   <block type="import_machine"></block>
   <block type="import_neopixel"></block>
