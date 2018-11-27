@@ -17,6 +17,11 @@ esp32Defs(Blockly.Blocks);
 esp32Gens(Blockly.Python as any);
 toolBoxXml += fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'blocks', 'esp32', 'toolbox.xml'));
 
+import dongulerDefs from './donguler/definitions.ts';
+import dongulerGens from './donguler/generators.ts';
+dongulerDefs(Blockly.Blocks);
+dongulerGens(Blockly.Python as any);
+toolBoxXml += fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'blocks', 'donguler', 'toolbox.xml'));
 // import gpiozeroDefs from './gpiozero/definitions';
 // import gpiozeroGens from './gpiozero/generators';
 // gpiozeroDefs(Blockly.Blocks);
