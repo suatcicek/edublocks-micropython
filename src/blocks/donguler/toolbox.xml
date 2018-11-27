@@ -1,3 +1,86 @@
 <category name="donguler" colour="35">
- 
+ <xml xmlns="http://www.w3.org/1999/xhtml"><block type="factory_base" id="_y~i_K}#mg)!T;2u.WnH" deletable="false" movable="false" x="10" y="10">
+    <mutation connections="NONE"></mutation>
+    <field name="NAME">for</field>
+    <field name="INLINE">AUTO</field>
+    <field name="CONNECTIONS">NONE</field>
+    <statement name="INPUTS">
+      <block type="input_statement" id="CD~@`fywTcze%gS-m9N/">
+        <field name="INPUTNAME">NAME</field>
+        <field name="ALIGN">LEFT</field>
+        <statement name="FIELDS">
+          <block type="field_input" id="u^aG1yz?|@7X$,_po+s/">
+            <field name="TEXT">... kere</field>
+            <field name="FIELDNAME">forsart</field>
+            <next>
+              <block type="field_static" id="gRw_l$xl!d!RKyeDcg^_">
+                <field name="TEXT">tekrarla</field>
+              </block>
+            </next>
+          </block>
+        </statement>
+        <value name="TYPE">
+          <shadow type="type_null" id="z-OKPAqm#DLm)c,=({}N"></shadow>
+          <block type="type_string" id="7|dW|RS/b]SeL,YH{,()"></block>
+        </value>
+      </block>
+    </statement>
+    <value name="TOOLTIP">
+      <block type="text" id="ftNP(M|Av|,jB2tU^[WO" deletable="false" movable="false">
+        <field name="TEXT">deneme</field>
+      </block>
+    </value>
+    <value name="HELPURL">
+      <block type="text" id="0tZX,Ur,DF:*o3OZ#t$7" deletable="false" movable="false">
+        <field name="TEXT"></field>
+      </block>
+    </value>
+    <value name="COLOUR">
+      <block type="colour_hue" id="lM0kq$-Ie^2Z$(z`k0@F">
+        <mutation colour="#a5a55b"></mutation>
+        <field name="HUE">60</field>
+      </block>
+    </value>
+  </block><block type="factory_base" id="ZrH01eI)s+J,!{Va|q%3" deletable="false" movable="false" x="10" y="10">
+    <mutation connections="NONE"></mutation>
+    <field name="NAME">while</field>
+    <field name="INLINE">AUTO</field>
+    <field name="CONNECTIONS">NONE</field>
+    <statement name="INPUTS">
+      <block type="input_statement" id="RvK)z=mS8,`p2WS%B-@6">
+        <field name="INPUTNAME">NAME</field>
+        <field name="ALIGN">LEFT</field>
+        <statement name="FIELDS">
+          <block type="field_input" id="1=.jyZP6;iq8r$ju8:_V">
+            <field name="TEXT">... olana kadar</field>
+            <field name="FIELDNAME">sart</field>
+            <next>
+              <block type="field_static" id="F[f9))fWNAUcs9J_;[rh">
+                <field name="TEXT">dön</field>
+              </block>
+            </next>
+          </block>
+        </statement>
+        <value name="TYPE">
+          <shadow type="type_null" id="^-uF@UY1IYDW_|(#YJE*"></shadow>
+        </value>
+      </block>
+    </statement>
+    <value name="TOOLTIP">
+      <block type="text" id="NG`E@4nHRQM3`VQ~{j[(" deletable="false" movable="false">
+        <field name="TEXT"></field>
+      </block>
+    </value>
+    <value name="HELPURL">
+      <block type="text" id="Ug1XjPF^Bf67M$2V7:MA" deletable="false" movable="false">
+        <field name="TEXT"></field>
+      </block>
+    </value>
+    <value name="COLOUR">
+      <block type="colour_hue" id="h4R_Hm3=Pm)cqVxs%BVS">
+        <mutation colour="#5b67a5"></mutation>
+        <field name="HUE">230</field>
+      </block>
+    </value>
+  </block></xml>
 </category>
